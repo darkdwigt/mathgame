@@ -5,115 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Algebra Tiles — Factoring Trinomials</title>
 <style>
-  /* ---------- Theme & layout ---------- */
+  /* ===== SHARED THEME (identical across all algebra-tile games) ===== */
   :root{
-    --cell: 40px;            /* size of one unit cell in pixels */
-    --grid: 10;              /* grid is GRID x GRID cells */
-    --x2: #2a9d8f;           /* x^2 tile  : teal */
-    --x:  #57b85a;           /* x tile    : green */
-    --unit:#f4a924;          /* unit tile : orange */
-    --ink:#1d2b34;
-    --paper:#f7fafb;
-    --line:#d4e2e6;
+    --cell:44px; --x2:#2a9d8f; --x:#57b85a; --unit:#f4a924;
+    --ink:#1d2b34; --paper:#f7fafb; --line:#d4e2e6;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    color:var(--ink);
-    background:#eef3f4;
-    -webkit-user-select:none;user-select:none;
-  }
-  header{
-    background:#fff;border-bottom:1px solid var(--line);
-    padding:14px 24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;
-  }
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       color:var(--ink);background:#eef3f4;-webkit-user-select:none;user-select:none;}
+  header{background:#fff;border-bottom:1px solid var(--line);padding:14px 24px;
+         display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
   header h1{font-size:20px;margin:0;font-weight:700;}
   header .meta{margin-left:auto;display:flex;gap:18px;font-size:15px;font-weight:600;}
   header .meta span b{color:var(--x2);}
-
   main{max-width:1280px;margin:0 auto;padding:20px 24px;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;}
-
   .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;}
 
-  /* Left column: problem + controls */
   .left{flex:0 0 280px;display:flex;flex-direction:column;gap:18px;}
   .problem{text-align:center;}
   .problem .label{font-size:13px;color:#5b7079;text-transform:uppercase;letter-spacing:.06em;}
   .problem .expr{font-size:34px;font-weight:700;margin:8px 0 0;}
   .problem .expr sup{font-size:.6em;vertical-align:super;}
-
   .result{margin-top:14px;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
-  .result.win .factored{
-    font-size:26px;font-weight:700;color:var(--x2);
-    animation:pop .5s ease;
-  }
+  .result.win .factored{font-size:24px;font-weight:700;color:var(--x2);animation:pop .5s ease;}
   .result .cheer{font-size:15px;color:#2a9d8f;font-weight:600;}
   @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1)}}
 
   .controls{display:flex;flex-direction:column;gap:10px;}
-  button{
-    font:inherit;font-weight:600;padding:11px 14px;border-radius:9px;border:1px solid var(--line);
-    background:#fff;cursor:pointer;transition:.12s;
-  }
+  button{font:inherit;font-weight:600;padding:11px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;transition:.12s;}
   button:hover{background:#f0f6f7;}
   button.primary{background:var(--x2);color:#fff;border-color:var(--x2);}
   button.primary:hover{background:#23867a;}
   button:disabled{opacity:.45;cursor:not-allowed;}
-
   .legend{font-size:13px;color:#5b7079;line-height:1.6;}
   .legend .swatch{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:middle;margin-right:6px;}
 
-  /* Center: workspace grid */
   .center{display:flex;flex-direction:column;align-items:center;gap:8px;}
-  .stage{position:relative;padding:34px 0 0 34px;} /* room for dimension labels */
-  #workspace{
-    position:relative;
-    width:calc(var(--cell) * var(--grid));
-    height:calc(var(--cell) * var(--grid));
-    background:var(--paper);
-    border:2px solid #b9ccd2;border-radius:6px;
-    /* faint gridlines, one line every cell */
-    background-image:
-      linear-gradient(to right, var(--line) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--line) 1px, transparent 1px);
-    background-size: var(--cell) var(--cell);
-  }
-  .hint-msg{font-size:13px;color:#5b7079;height:18px;}
+  .stage{position:relative;padding:34px 0 0 34px;}
+  #workspace{position:relative;
+    width:calc(var(--cell) * 10);height:calc(var(--cell) * 10);
+    background:var(--paper);border:2px solid #b9ccd2;border-radius:6px;
+    background-image:linear-gradient(to right,var(--line) 1px,transparent 1px),
+                     linear-gradient(to bottom,var(--line) 1px,transparent 1px);
+    background-size:var(--cell) var(--cell);}
+  .hint-msg{font-size:13px;color:#5b7079;min-height:18px;}
 
-  /* dimension label brackets shown on success */
   .dimlabel{position:absolute;font-weight:700;color:var(--x2);font-size:17px;display:none;align-items:center;justify-content:center;}
   .dimlabel.top{top:8px;height:24px;border-bottom:3px solid var(--x2);}
   .dimlabel.left{left:6px;width:24px;writing-mode:vertical-rl;transform:rotate(180deg);border-right:3px solid var(--x2);}
-
-  /* highlight strips for the two factor edges */
   .edgehi{position:absolute;background:rgba(42,157,143,.16);display:none;pointer-events:none;border:1px dashed var(--x2);}
-
-  /* hint flash for x^2 corner */
-  .corner-hint{position:absolute;left:0;top:0;
-    width:calc(var(--cell)*3);height:calc(var(--cell)*3);
-    border:3px dashed var(--x2);border-radius:6px;background:rgba(42,157,143,.12);
-    display:none;pointer-events:none;}
+  .corner-hint{position:absolute;left:0;top:0;width:calc(var(--cell)*3);height:calc(var(--cell)*3);
+    border:3px dashed var(--x2);border-radius:6px;background:rgba(42,157,143,.12);display:none;pointer-events:none;}
   .corner-hint.show{display:block;animation:flash 1.6s ease;}
   @keyframes flash{0%,100%{opacity:0}20%,80%{opacity:1}}
 
-  /* Right: supply tray */
   .right{flex:1 1 320px;min-width:300px;}
   .right h2{font-size:14px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em;color:#5b7079;}
   .right .hint{font-size:12px;color:#7f939b;margin:0 0 12px;}
   #tray{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;min-height:120px;}
 
-  /* ---------- Tiles ---------- */
-  .tile{
-    position:relative;border-radius:5px;border:1px solid rgba(0,0,0,.18);
-    display:flex;align-items:center;justify-content:center;
-    color:#fff;font-weight:700;cursor:grab;
-    box-shadow:0 1px 2px rgba(0,0,0,.18);
-    touch-action:none;
-  }
+  .tile{position:relative;border-radius:5px;border:1px solid rgba(0,0,0,.18);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;
+    cursor:grab;box-shadow:0 1px 2px rgba(0,0,0,.18);touch-action:none;}
   .tile.dragging{cursor:grabbing;box-shadow:0 6px 16px rgba(0,0,0,.3);opacity:.92;}
   .tile.x2{background:var(--x2);font-size:18px;}
-  .tile.x {background:var(--x); font-size:15px;}
+  .tile.x{background:var(--x);font-size:15px;}
   .tile.unit{background:var(--unit);font-size:12px;}
   .tile sup{font-size:.6em;vertical-align:super;}
 
@@ -132,11 +89,10 @@
 </header>
 
 <main>
-  <!-- LEFT: problem statement, result, controls -->
   <section class="left">
     <div class="panel problem">
-      <div class="label">Factor this trinomial</div>
-      <div class="expr" id="expr">x<sup>2</sup> + 5x + 6</div>
+      <div class="label" id="prompt">Factor this trinomial</div>
+      <div class="expr" id="expr"></div>
       <div class="result" id="result"></div>
     </div>
     <div class="panel controls">
@@ -151,7 +107,6 @@
     </div>
   </section>
 
-  <!-- CENTER: drag-and-drop grid workspace -->
   <section class="center">
     <div class="stage">
       <div class="dimlabel top" id="dimTop"></div>
@@ -162,13 +117,12 @@
         <div class="corner-hint" id="cornerHint"></div>
       </div>
     </div>
-    <div class="hint-msg">Arrange every tile into one solid rectangle — no gaps, no overlaps.</div>
+    <div class="hint-msg" id="goal"></div>
   </section>
 
-  <!-- RIGHT: supply tray -->
   <section class="right panel">
     <h2>Tile supply</h2>
-    <p class="hint">Drag tiles onto the grid. Click an x-tile to rotate it 90°.</p>
+    <p class="hint">Drag tiles onto the grid. Double-click an x-tile to rotate it 90°.</p>
     <div id="tray"></div>
   </section>
 </main>
@@ -177,333 +131,205 @@
 "use strict";
 
 /* =========================================================================
-   CONFIGURATION & STATE
+   GAME CONFIG  — the ONLY part that differs between algebra-tile games.
+   (See CLAUDE.md for the shared contract.)
    ========================================================================= */
-const CELL = 40;          // pixel size of one unit cell
-const GRID = 10;          // grid is GRID x GRID cells
-const XUNITS = 3;         // an "x" length renders as 3 cells (so x^2 = 3x3)
+const GAME = {
+  goal: "Arrange every tile into one solid rectangle — no gaps, no overlaps.",
 
-const workspace = document.getElementById('workspace');
-const tray = document.getElementById('tray');
+  // 10 distinct monic trinomials from factor pairs 1<=p<=q<=4, shuffled.
+  buildSession(){
+    const qs=[];
+    for(let p=1;p<=4;p++) for(let q=p;q<=4;q++) qs.push({p,q,b:p+q,c:p*q});
+    for(let i=qs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[qs[i],qs[j]]=[qs[j],qs[i]];}
+    return qs;
+  },
+  exprHTML(Q){ return `x<sup>2</sup> + ${Q.b}x + ${Q.c}`; },
+  supply(Q){ return [{type:'x2',n:1},{type:'x',n:Q.b},{type:'unit',n:Q.c}]; },
 
-/* The session is a shuffled set of (p,q) factor pairs. Each pair defines a
-   monic trinomial  x^2 + (p+q)x + pq  = (x+p)(x+q).
-   Pairs with 1<=p<=q<=4 give exactly 10 distinct, classroom-friendly problems
-   (b: 2..8, c: 1..16) including the requested examples. */
-function buildSession(){
-  const pairs = [];
-  for(let p=1;p<=4;p++) for(let q=p;q<=4;q++) pairs.push([p,q]);
-  // Fisher–Yates shuffle
-  for(let i=pairs.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [pairs[i],pairs[j]]=[pairs[j],pairs[i]];
+  // win when the filled rectangle's sides read off the correct factors
+  check(Q,w,h){
+    const f1=w-X, f2=h-X;            // a side of length L cells = "x + (L-X)"
+    if(f1>=1 && f2>=1 && f1+f2===Q.b && f1*f2===Q.c){
+      return {identity:`(x + ${f1})(x + ${f2})`, topLabel:`x + ${f1}`, leftLabel:`x + ${f2}`, cheer:'🎉 Correct!'};
+    }
+    return null;
   }
-  return pairs;
-}
-
-let session = buildSession();
-let qIndex = 0;            // 0-based current question
-let score = 0;
-let B = 0, C = 0;          // current b and c coefficients
-let tiles = [];            // all tile objects for the current question
-let solved = false;        // has the current question been solved?
+};
 
 /* =========================================================================
-   TILE CREATION
-   A tile object: { id, type, orientation, w, h, placed, gx, gy, el }
-   - w,h are sizes in CELLS and depend on orientation (for x-tiles).
+   SHARED ENGINE  — identical in every algebra-tile game. Do not fork.
    ========================================================================= */
-let tileSeq = 0;
+const X=3, GRID=10, CELL=44;
+const workspace=document.getElementById('workspace');
+const tray=document.getElementById('tray');
+
+let session=GAME.buildSession();
+let qIndex=0, score=0, tiles=[], solved=false, Q=null, seq=0;
+
+/* ---- tile factory ---- */
 function makeTile(type){
-  const t = { id:++tileSeq, type, orientation:'h', placed:false, gx:0, gy:0 };
-  const el = document.createElement('div');
-  el.className = 'tile ' + type;
-  if(type==='x2'){ t.w=XUNITS; t.h=XUNITS; el.innerHTML='x<sup>2</sup>'; }
-  else if(type==='x'){ t.w=XUNITS; t.h=1; el.textContent='x'; }      // default horizontal
-  else { t.w=1; t.h=1; el.textContent='1'; }                         // unit
-  t.el = el;
-  sizeTile(t);
-  el.addEventListener('mousedown', e=>onDown(e,t));
+  const t={id:++seq,type,orientation:'h',placed:false,gx:0,gy:0};
+  const el=document.createElement('div');
+  el.className='tile '+type;
+  if(type==='x2'){t.w=X;t.h=X;el.innerHTML='x<sup>2</sup>';}
+  else if(type==='x'){t.w=X;t.h=1;el.textContent='x';}
+  else{t.w=1;t.h=1;el.textContent='1';}
+  t.el=el; sizeTile(t);
+  el.addEventListener('mousedown',e=>onDown(e,t));
+  el.addEventListener('dblclick',e=>{e.preventDefault();doRotate(t);});  // double-click = rotate
   return t;
 }
+function sizeTile(t){ t.el.style.width=(t.w*CELL-2)+'px'; t.el.style.height=(t.h*CELL-2)+'px'; }
 
-/* Apply a tile's current cell-size to its DOM element. */
-function sizeTile(t){
-  t.el.style.width  = (t.w*CELL - 2) + 'px';
-  t.el.style.height = (t.h*CELL - 2) + 'px';
-}
-
-/* Rotate an x-tile between horizontal (3x1) and vertical (1x3). */
-function rotate(t){
-  if(t.type!=='x') return;
-  t.orientation = t.orientation==='h' ? 'v' : 'h';
-  [t.w,t.h] = [t.h,t.w];
-  sizeTile(t);
-}
-
-/* =========================================================================
-   QUESTION LOADING
-   ========================================================================= */
+/* ---- load a question ---- */
 function loadQuestion(){
-  solved = false;
-  tiles = [];
-  tileSeq = 0;
+  solved=false; tiles=[]; seq=0;
   workspace.querySelectorAll('.tile').forEach(n=>n.remove());
-  tray.innerHTML='';
-  clearSuccessUI();
-
-  const [p,q] = session[qIndex];
-  B = p+q; C = p*q;
-
-  document.getElementById('expr').innerHTML =
-      `x<sup>2</sup> + ${B}x + ${C}`;
-  document.getElementById('qnum').textContent = qIndex+1;
-  document.getElementById('score').textContent = score;
-  document.getElementById('nextBtn').disabled = true;
-  document.getElementById('result').className = 'result';
-  document.getElementById('result').innerHTML = '';
-
-  // Tile counts: 1 x^2, (p+q) x-tiles, (p*q) unit tiles
-  tiles.push(makeTile('x2'));
-  for(let i=0;i<B;i++) tiles.push(makeTile('x'));
-  for(let i=0;i<C;i++) tiles.push(makeTile('unit'));
+  tray.innerHTML=''; clearSuccessUI();
+  Q=session[qIndex];
+  document.getElementById('expr').innerHTML=GAME.exprHTML(Q);
+  document.getElementById('qnum').textContent=qIndex+1;
+  document.getElementById('score').textContent=score;
+  document.getElementById('nextBtn').disabled=true;
+  document.getElementById('result').className='result';
+  document.getElementById('result').innerHTML='';
+  for(const s of GAME.supply(Q)) for(let i=0;i<s.n;i++) tiles.push(makeTile(s.type));
   tiles.forEach(t=>tray.appendChild(t.el));
 }
 
-/* =========================================================================
-   DRAG & DROP  (mouse events)
-   ========================================================================= */
-let drag = null, grabX=0, grabY=0, startX=0, startY=0, moved=false;
-
-function onDown(e, t){
+/* ---- DRAG & DROP (mouse events) ---- */
+let drag=null,grabX=0,grabY=0,startX=0,startY=0,moved=false;
+function onDown(e,t){
   if(solved) return;
   e.preventDefault();
-  drag = t; moved = false;
-  startX = e.clientX; startY = e.clientY;
-
-  const r = t.el.getBoundingClientRect();
-  grabX = e.clientX - r.left;
-  grabY = e.clientY - r.top;
-
-  // remember where it came from so we can restore on an invalid drop / click
-  t.prevPlaced = t.placed; t.prevX = t.gx; t.prevY = t.gy;
-  t.placed = false;                 // free its cells while being dragged
-
-  // lift the tile out into the page, following the cursor (position:fixed)
+  drag=t; moved=false; startX=e.clientX; startY=e.clientY;
+  const r=t.el.getBoundingClientRect();
+  grabX=e.clientX-r.left; grabY=e.clientY-r.top;
+  t.prevPlaced=t.placed; t.prevX=t.gx; t.prevY=t.gy;
+  t.placed=false;                                  // free its cells while dragging
   document.body.appendChild(t.el);
   t.el.classList.add('dragging');
-  t.el.style.position='fixed';
-  t.el.style.zIndex=1000;
-  moveTo(e.clientX, e.clientY);
+  t.el.style.position='fixed'; t.el.style.zIndex=1000;
+  moveTo(e.clientX,e.clientY);
 }
-
-function moveTo(cx, cy){
-  drag.el.style.left = (cx - grabX) + 'px';
-  drag.el.style.top  = (cy - grabY) + 'px';
-}
-
-document.addEventListener('mousemove', e=>{
+function moveTo(cx,cy){ drag.el.style.left=(cx-grabX)+'px'; drag.el.style.top=(cy-grabY)+'px'; }
+document.addEventListener('mousemove',e=>{
   if(!drag) return;
-  if(Math.abs(e.clientX-startX)>4 || Math.abs(e.clientY-startY)>4) moved=true;
-  moveTo(e.clientX, e.clientY);
+  if(Math.abs(e.clientX-startX)>4||Math.abs(e.clientY-startY)>4) moved=true;
+  moveTo(e.clientX,e.clientY);
 });
-
-document.addEventListener('mouseup', e=>{
+document.addEventListener('mouseup',e=>{
   if(!drag) return;
-  const t = drag; drag = null;
-  t.el.classList.remove('dragging');
-  t.el.style.zIndex='';
-
-  // --- CLICK (no real movement): rotate x-tiles, otherwise just restore ---
-  if(!moved){
-    if(t.type==='x') rotate(t);
-    restore(t);
-    checkWin();
-    return;
-  }
-
-  // --- DROP: decide whether the tile landed on the workspace -------------
-  const ws = workspace.getBoundingClientRect();
-  const r  = t.el.getBoundingClientRect();
-  const centerInside =
-        r.left + r.width/2  > ws.left && r.left + r.width/2  < ws.right &&
-        r.top  + r.height/2 > ws.top  && r.top  + r.height/2 < ws.bottom;
-
-  if(centerInside){
-    // SNAP-TO-GRID: nearest cell to the tile's top-left, clamped in bounds
-    let gx = Math.round((r.left - ws.left)/CELL);
-    let gy = Math.round((r.top  - ws.top )/CELL);
-    gx = Math.max(0, Math.min(GRID - t.w, gx));
-    gy = Math.max(0, Math.min(GRID - t.h, gy));
-
-    if(canPlace(t, gx, gy)) { placeTile(t, gx, gy); }
-    else                    { restore(t); }       // overlap -> go back
-  } else {
-    returnToTray(t);
-  }
+  const t=drag; drag=null;
+  t.el.classList.remove('dragging'); t.el.style.zIndex='';
+  if(!moved){ restore(t); return; }               // a click (no drag) just puts it back
+  // SNAP-TO-GRID: nearest cell to the tile's top-left, clamped in bounds
+  const ws=workspace.getBoundingClientRect(), r=t.el.getBoundingClientRect();
+  const inside=r.left+r.width/2>ws.left&&r.left+r.width/2<ws.right&&
+               r.top+r.height/2>ws.top&&r.top+r.height/2<ws.bottom;
+  if(inside){
+    let gx=Math.round((r.left-ws.left)/CELL), gy=Math.round((r.top-ws.top)/CELL);
+    gx=Math.max(0,Math.min(GRID-t.w,gx)); gy=Math.max(0,Math.min(GRID-t.h,gy));
+    if(canPlace(t,gx,gy)) placeTile(t,gx,gy); else restore(t);
+  } else returnToTray(t);
   checkWin();
 });
 
-/* Restore a tile to where it was before the drag began. */
+/* double-click an x-tile to rotate 90° (in tray or in place) */
+function doRotate(t){
+  if(solved||t.type!=='x') return;
+  const wasPlaced=t.placed, gx=t.gx, gy=t.gy;
+  if(wasPlaced) t.placed=false;                    // free cells before re-checking fit
+  t.orientation=t.orientation==='h'?'v':'h';
+  [t.w,t.h]=[t.h,t.w]; sizeTile(t);
+  if(wasPlaced){ if(canPlace(t,gx,gy)) placeTile(t,gx,gy); else returnToTray(t); }
+  checkWin();
+}
+
 function restore(t){
-  if(t.prevPlaced && canPlace(t, t.prevX, t.prevY)) placeTile(t, t.prevX, t.prevY);
+  if(t.prevPlaced && canPlace(t,t.prevX,t.prevY)) placeTile(t,t.prevX,t.prevY);
   else returnToTray(t);
 }
 
-/* COLLISION DETECTION: true if tile fits at (gx,gy) with every needed cell
-   currently empty. (The dragged tile has placed=false, so it never blocks
-   itself.) */
-function canPlace(t, gx, gy){
+/* COLLISION: true if every needed cell is empty (dragged tile is already freed) */
+function canPlace(t,gx,gy){
   if(gx<0||gy<0||gx+t.w>GRID||gy+t.h>GRID) return false;
-  const occ = occupancy();
-  for(let y=gy;y<gy+t.h;y++)
-    for(let x=gx;x<gx+t.w;x++)
-      if(occ[y][x]) return false;
+  const occ=occupancy();
+  for(let y=gy;y<gy+t.h;y++) for(let x=gx;x<gx+t.w;x++) if(occ[y][x]) return false;
   return true;
 }
-
-/* Build a GRIDxGRID occupancy map from all currently placed tiles. */
 function occupancy(){
-  const g = Array.from({length:GRID},()=>new Array(GRID).fill(0));
-  for(const t of tiles){
-    if(!t.placed) continue;
-    for(let y=t.gy;y<t.gy+t.h;y++)
-      for(let x=t.gx;x<t.gx+t.w;x++)
-        g[y][x] = t.id;
-  }
+  const g=Array.from({length:GRID},()=>new Array(GRID).fill(0));
+  for(const t of tiles){ if(!t.placed) continue;
+    for(let y=t.gy;y<t.gy+t.h;y++) for(let x=t.gx;x<t.gx+t.w;x++) g[y][x]=t.id; }
   return g;
 }
-
-function placeTile(t, gx, gy){
-  t.placed = true; t.gx = gx; t.gy = gy;
+function placeTile(t,gx,gy){
+  t.placed=true; t.gx=gx; t.gy=gy;
   workspace.appendChild(t.el);
-  t.el.style.position='absolute';
-  t.el.style.left = (gx*CELL)+'px';
-  t.el.style.top  = (gy*CELL)+'px';
+  t.el.style.position='absolute'; t.el.style.left=(gx*CELL)+'px'; t.el.style.top=(gy*CELL)+'px';
 }
-
 function returnToTray(t){
-  t.placed = false;
-  t.el.style.position='static';
-  t.el.style.left=''; t.el.style.top='';
+  t.placed=false; t.el.style.position='static'; t.el.style.left=''; t.el.style.top='';
   tray.appendChild(t.el);
 }
 
-/* =========================================================================
-   WIN DETECTION & DIMENSION INFERENCE
-   Success = every tile placed AND the filled cells form one solid rectangle
-   (no internal gaps) whose side lengths read off as the correct factors.
-   ========================================================================= */
+/* ---- WIN DETECTION: all tiles placed + solid filled rectangle, then GAME.check ---- */
 function checkWin(){
   if(solved) return;
-
-  // 1. all tiles must be on the grid
   if(tiles.some(t=>!t.placed)) return;
-
-  // 2. gather occupied cells + bounding box
-  let minX=GRID, minY=GRID, maxX=-1, maxY=-1, filled=0;
-  const occ = occupancy();
-  for(let y=0;y<GRID;y++) for(let x=0;x<GRID;x++){
-    if(occ[y][x]){
-      filled++;
-      if(x<minX)minX=x; if(x>maxX)maxX=x;
-      if(y<minY)minY=y; if(y>maxY)maxY=y;
-    }
+  let minX=GRID,minY=GRID,maxX=-1,maxY=-1,filled=0;
+  const occ=occupancy();
+  for(let y=0;y<GRID;y++) for(let x=0;x<GRID;x++) if(occ[y][x]){
+    filled++; if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
   }
-  const bw = maxX-minX+1, bh = maxY-minY+1;
-
-  // 3. the bounding box must be completely filled (rectangle, no gaps)
-  if(bw*bh !== filled) return;
-
-  // 4. DIMENSION INFERENCE: a side of length L cells = "x + (L-XUNITS)"
-  const f1 = bw - XUNITS;   // top edge factor constant
-  const f2 = bh - XUNITS;   // left edge factor constant
-  if(f1<1 || f2<1) return;
-
-  // 5. confirm the dimensions match this trinomial's factors
-  if(f1+f2 === B && f1*f2 === C){
-    onSuccess(f1, f2, minX, minY, bw, bh);
-  }
+  const bw=maxX-minX+1, bh=maxY-minY+1;
+  if(bw*bh!==filled) return;                        // bounding box must be gap-free
+  const r=GAME.check(Q,bw,bh);
+  if(r) onSuccess(r,minX,minY,bw,bh);
 }
 
-/* =========================================================================
-   SUCCESS PRESENTATION
-   ========================================================================= */
-function onSuccess(f1, f2, minX, minY, bw, bh){
-  solved = true;
-  score++;
-  document.getElementById('score').textContent = score;
-
-  // factored form
-  const res = document.getElementById('result');
-  res.className = 'result win';
-  res.innerHTML =
-    `<div class="cheer">🎉 Correct!</div>
-     <div class="factored">(x + ${f1})(x + ${f2})</div>`;
-
-  // dimension brackets along top + left edges
-  const top = document.getElementById('dimTop');
-  const left = document.getElementById('dimLeft');
-  top.style.display='flex';
-  top.style.left = (34 + minX*CELL)+'px';
-  top.style.width = (bw*CELL)+'px';
-  top.innerHTML = `x + ${f1}`;
-  left.style.display='flex';
-  left.style.top = (34 + minY*CELL)+'px';
-  left.style.height = (bh*CELL)+'px';
-  left.innerHTML = `x + ${f2}`;
-
-  // highlight the top row and left column (the two factor edges)
-  const hiTop = document.getElementById('hiTop');
-  hiTop.style.display='block';
-  hiTop.style.left=(minX*CELL)+'px'; hiTop.style.top=(minY*CELL)+'px';
-  hiTop.style.width=(bw*CELL)+'px';  hiTop.style.height=CELL+'px';
-  const hiLeft = document.getElementById('hiLeft');
-  hiLeft.style.display='block';
-  hiLeft.style.left=(minX*CELL)+'px'; hiLeft.style.top=(minY*CELL)+'px';
-  hiLeft.style.width=CELL+'px';       hiLeft.style.height=(bh*CELL)+'px';
-
-  document.getElementById('nextBtn').disabled = false;
+/* ---- SUCCESS: highlight the two factor edges, label them, show the identity ---- */
+function onSuccess(r,minX,minY,bw,bh){
+  solved=true; score++;
+  document.getElementById('score').textContent=score;
+  const res=document.getElementById('result');
+  res.className='result win';
+  res.innerHTML=`<div class="cheer">${r.cheer}</div><div class="factored">${r.identity}</div>`;
+  const top=document.getElementById('dimTop'), left=document.getElementById('dimLeft');
+  top.style.display='flex'; top.style.left=(34+minX*CELL)+'px'; top.style.width=(bw*CELL)+'px'; top.innerHTML=r.topLabel;
+  left.style.display='flex'; left.style.top=(34+minY*CELL)+'px'; left.style.height=(bh*CELL)+'px'; left.innerHTML=r.leftLabel;
+  const hiTop=document.getElementById('hiTop');
+  hiTop.style.display='block'; hiTop.style.left=(minX*CELL)+'px'; hiTop.style.top=(minY*CELL)+'px';
+  hiTop.style.width=(bw*CELL)+'px'; hiTop.style.height=CELL+'px';
+  const hiLeft=document.getElementById('hiLeft');
+  hiLeft.style.display='block'; hiLeft.style.left=(minX*CELL)+'px'; hiLeft.style.top=(minY*CELL)+'px';
+  hiLeft.style.width=CELL+'px'; hiLeft.style.height=(bh*CELL)+'px';
+  document.getElementById('nextBtn').disabled=false;
 }
-
 function clearSuccessUI(){
-  ['dimTop','dimLeft','hiTop','hiLeft'].forEach(id=>{
-    document.getElementById(id).style.display='none';
-  });
+  ['dimTop','dimLeft','hiTop','hiLeft'].forEach(id=>document.getElementById(id).style.display='none');
 }
 
-/* =========================================================================
-   CONTROLS
-   ========================================================================= */
-document.getElementById('resetBtn').addEventListener('click', ()=>{
-  if(solved) return;                 // keep a solved board intact
-  tiles.forEach(returnToTray);
+/* ---- CONTROLS ---- */
+document.getElementById('resetBtn').addEventListener('click',()=>{ if(!solved) tiles.forEach(returnToTray); });
+document.getElementById('hintBtn').addEventListener('click',()=>{   // flash the x²-tile's corner
+  const c=document.getElementById('cornerHint');
+  c.classList.remove('show'); void c.offsetWidth; c.classList.add('show');
 });
-
-document.getElementById('hintBtn').addEventListener('click', ()=>{
-  // briefly flash where the x^2-tile belongs (top-left corner)
-  const c = document.getElementById('cornerHint');
-  c.classList.remove('show');
-  void c.offsetWidth;                // restart the animation
-  c.classList.add('show');
+document.getElementById('nextBtn').addEventListener('click',()=>{
+  qIndex++; if(qIndex>=session.length){ showEndCard(); return; } loadQuestion();
 });
-
-document.getElementById('nextBtn').addEventListener('click', ()=>{
-  qIndex++;
-  if(qIndex >= session.length){ showEndCard(); return; }
-  loadQuestion();
-});
-
 function showEndCard(){
-  document.querySelector('main').innerHTML =
-    `<div class="panel endcard">
-       <h2>Session complete! 🏆</h2>
-       <p style="font-size:18px">You factored <b>${score}</b> of ${session.length} trinomials.</p>
-       <button class="primary" onclick="location.reload()">Play again</button>
-     </div>`;
+  document.querySelector('main').innerHTML=
+    `<div class="panel endcard"><h2>Session complete! 🏆</h2>
+       <p style="font-size:18px">You solved <b>${score}</b> of ${session.length}.</p>
+       <button class="primary" onclick="location.reload()">Play again</button></div>`;
 }
 
-/* ---------- boot ---------- */
+/* ---- boot ---- */
+document.getElementById('goal').textContent=GAME.goal;
 loadQuestion();
 </script>
 </body>
