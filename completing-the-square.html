@@ -200,32 +200,37 @@ function loadQuestion(){
   tiles.forEach(t=>tray.appendChild(t.el));
 }
 
-/* ---- DRAG & DROP (mouse events) ---- */
-let drag=null,grabX=0,grabY=0,startX=0,startY=0,moved=false;
+/* ---- DRAG & DROP (mouse events) ----
+   A tile is only "lifted" once the pointer moves past a small threshold, so a
+   plain click (or double-click) never reparents the node. That lets the native
+   dblclick fire reliably for the rotate gesture. */
+let drag=null,grabX=0,grabY=0,startX=0,startY=0,lifted=false;
 function onDown(e,t){
   if(solved) return;
   e.preventDefault();
-  drag=t; moved=false; startX=e.clientX; startY=e.clientY;
+  drag=t; lifted=false; startX=e.clientX; startY=e.clientY;
   const r=t.el.getBoundingClientRect();
   grabX=e.clientX-r.left; grabY=e.clientY-r.top;
   t.prevPlaced=t.placed; t.prevX=t.gx; t.prevY=t.gy;
-  t.placed=false;                                  // free its cells while dragging
-  document.body.appendChild(t.el);
-  t.el.classList.add('dragging');
-  t.el.style.position='fixed'; t.el.style.zIndex=1000;
-  moveTo(e.clientX,e.clientY);
+}
+function lift(){                                   // begin an actual drag
+  lifted=true; drag.placed=false;                  // free its cells while dragging
+  document.body.appendChild(drag.el);
+  drag.el.classList.add('dragging');
+  drag.el.style.position='fixed'; drag.el.style.zIndex=1000;
 }
 function moveTo(cx,cy){ drag.el.style.left=(cx-grabX)+'px'; drag.el.style.top=(cy-grabY)+'px'; }
 document.addEventListener('mousemove',e=>{
   if(!drag) return;
-  if(Math.abs(e.clientX-startX)>4||Math.abs(e.clientY-startY)>4) moved=true;
+  if(!lifted){ if(Math.abs(e.clientX-startX)>4||Math.abs(e.clientY-startY)>4) lift(); else return; }
   moveTo(e.clientX,e.clientY);
 });
 document.addEventListener('mouseup',e=>{
   if(!drag) return;
   const t=drag; drag=null;
+  if(!lifted) return;                              // a click, not a drag — leave the tile; dblclick rotates
+  lifted=false;
   t.el.classList.remove('dragging'); t.el.style.zIndex='';
-  if(!moved){ restore(t); return; }               // a click (no drag) just puts it back
   // SNAP-TO-GRID: nearest cell to the tile's top-left, clamped in bounds
   const ws=workspace.getBoundingClientRect(), r=t.el.getBoundingClientRect();
   const inside=r.left+r.width/2>ws.left&&r.left+r.width/2<ws.right&&
