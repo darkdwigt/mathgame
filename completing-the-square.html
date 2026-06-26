@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Algebra Tiles — Completing the Square</title>
+<style>
+  /* ---------- Theme (shared colour language with the factoring game) ------ */
+  :root{
+    --x2: #2a9d8f;          /* x^2 tile : teal  */
+    --x:  #57b85a;          /* x tile   : green */
+    --unit:#f4a924;         /* unit tile: orange*/
+    --ink:#1d2b34;
+    --paper:#f7fafb;
+    --line:#d4e2e6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:#eef3f4;-webkit-user-select:none;user-select:none;
+  }
+  header{
+    background:#fff;border-bottom:1px solid var(--line);
+    padding:14px 24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;
+  }
+  header h1{font-size:20px;margin:0;font-weight:700;}
+  header .meta{margin-left:auto;display:flex;gap:18px;font-size:15px;font-weight:600;}
+  header .meta span b{color:var(--x2);}
+
+  main{max-width:1280px;margin:0 auto;padding:20px 24px;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;}
+
+  /* Left column */
+  .left{flex:0 0 290px;display:flex;flex-direction:column;gap:18px;}
+  .problem{text-align:center;}
+  .problem .label{font-size:13px;color:#5b7079;text-transform:uppercase;letter-spacing:.06em;}
+  .problem .expr{font-size:34px;font-weight:700;margin:8px 0 0;}
+  .stagetip{font-size:13px;color:#5b7079;margin-top:10px;min-height:34px;line-height:1.4;}
+
+  .result{margin-top:12px;min-height:30px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .result.win .identity{font-size:22px;font-weight:700;color:var(--x2);animation:pop .5s ease;}
+  .result .cheer{font-size:15px;color:#2a9d8f;font-weight:600;}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+  .controls{display:flex;flex-direction:column;gap:10px;}
+  button{font:inherit;font-weight:600;padding:11px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;transition:.12s;}
+  button:hover{background:#f0f6f7;}
+  button.primary{background:var(--x2);color:#fff;border-color:var(--x2);}
+  button.primary:hover{background:#23867a;}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+
+  .legend{font-size:13px;color:#5b7079;line-height:1.6;}
+  .legend .swatch{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:middle;margin-right:6px;}
+
+  /* Center workspace */
+  .center{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .stage{position:relative;padding:30px 0 0 30px;} /* room for side-length labels */
+  #workspace{
+    position:relative;background:var(--paper);
+    border:2px solid #b9ccd2;border-radius:6px;
+    background-image:
+      linear-gradient(to right, var(--line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+    /* background-size set from JS to match CELL */
+  }
+  .hint-msg{font-size:13px;color:#5b7079;height:18px;}
+
+  /* glowing snap-zone outlines (stage 1) */
+  .zone{position:absolute;border:2px dashed var(--x);border-radius:5px;
+        background:rgba(87,184,90,.10);pointer-events:none;display:none;
+        animation:glow 1.4s ease-in-out infinite;}
+  @keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(87,184,90,.0)}50%{box-shadow:0 0 0 4px rgba(87,184,90,.25)}}
+
+  /* the missing-corner gap (stage 2) */
+  .gap{position:absolute;border:2px dashed #9aa7ad;border-radius:5px;
+       background:rgba(150,160,165,.12);display:none;pointer-events:none;
+       align-items:center;justify-content:center;}
+  .gap .q{font-size:26px;font-weight:700;color:#8b969c;}
+  .gap .dim{position:absolute;font-size:13px;font-weight:700;color:#6b777d;}
+  .gap .dim.top{top:-20px;left:0;width:100%;text-align:center;}
+  .gap .dim.left{left:-18px;top:0;height:100%;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;}
+
+  /* completed-square flash + side labels */
+  .square-flash{position:absolute;border:4px solid var(--x2);border-radius:6px;display:none;pointer-events:none;}
+  .square-flash.show{display:block;animation:flash 1.4s ease;}
+  @keyframes flash{0%,100%{opacity:0}25%,75%{opacity:1}}
+  .sidelabel{position:absolute;font-weight:700;color:var(--x2);font-size:16px;display:none;}
+  .sidelabel.top{height:24px;}
+  .sidelabel.left{width:24px;writing-mode:vertical-rl;transform:rotate(180deg);}
+
+  /* hint arrow */
+  .arrow{position:absolute;font-size:30px;display:none;pointer-events:none;z-index:50;}
+  .arrow.show{display:block;animation:bob 1.4s ease;}
+  @keyframes bob{0%,100%{opacity:0}20%,80%{opacity:1}50%{transform:translate(var(--bx,0),var(--by,0))}}
+
+  /* Right tray */
+  .right{flex:1 1 300px;min-width:280px;}
+  .right h2{font-size:14px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em;color:#5b7079;}
+  .right .hint{font-size:12px;color:#7f939b;margin:0 0 12px;}
+  #tray{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;min-height:120px;}
+
+  /* Tiles */
+  .tile{position:relative;border-radius:5px;border:1px solid rgba(0,0,0,.18);
+        display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;
+        cursor:grab;box-shadow:0 1px 2px rgba(0,0,0,.18);touch-action:none;}
+  .tile.dragging{cursor:grabbing;box-shadow:0 6px 16px rgba(0,0,0,.3);opacity:.92;}
+  .tile.x2{background:var(--x2);font-size:18px;}
+  .tile.x {background:var(--x); font-size:15px;}
+  .tile.unit{background:var(--unit);font-size:12px;}
+  .tile.anchor{box-shadow:0 4px 10px rgba(0,0,0,.28);cursor:default;outline:2px solid rgba(42,157,143,.4);outline-offset:-2px;}
+  .tile.locked{cursor:default;}
+
+  .endcard{flex:1 1 100%;text-align:center;padding:30px;}
+  .endcard h2{font-size:24px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🟦 Algebra Tiles — Completing the Square</h1>
+  <div class="meta">
+    <span>Question <b id="qnum">1</b>/10</span>
+    <span>Score <b id="score">0</b></span>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT -->
+  <section class="left">
+    <div class="panel problem">
+      <div class="label">Complete the square</div>
+      <div class="expr" id="expr">x² + 6x</div>
+      <div class="stagetip" id="stagetip"></div>
+      <div class="result" id="result"></div>
+    </div>
+    <div class="panel controls">
+      <button class="primary" id="nextBtn" disabled>Next →</button>
+      <button id="resetBtn">↺ Reset workspace</button>
+      <button id="hintBtn">💡 Show hint</button>
+    </div>
+    <div class="panel legend">
+      <div><span class="swatch" style="background:var(--x2)"></span> x²-tile (anchored, x by x)</div>
+      <div><span class="swatch" style="background:var(--x)"></span> x-tile (x by 1)</div>
+      <div><span class="swatch" style="background:var(--unit)"></span> unit-tile (1 by 1)</div>
+    </div>
+  </section>
+
+  <!-- CENTER -->
+  <section class="center">
+    <div class="stage" id="stageBox">
+      <div id="workspace">
+        <div class="zone" id="zoneTop"></div>
+        <div class="zone" id="zoneRight"></div>
+        <div class="gap" id="gap"><span class="q">?</span>
+          <span class="dim top" id="gapDimTop"></span>
+          <span class="dim left" id="gapDimLeft"></span>
+        </div>
+        <div class="square-flash" id="squareFlash"></div>
+        <div class="arrow" id="arrow">⬇️</div>
+      </div>
+      <div class="sidelabel top" id="sideTop"></div>
+      <div class="sidelabel left" id="sideLeft"></div>
+    </div>
+    <div class="hint-msg" id="hintMsg"></div>
+  </section>
+
+  <!-- RIGHT -->
+  <section class="right panel">
+    <h2>Tile supply</h2>
+    <p class="hint">Drag tiles onto the highlighted zones. They snap into place.</p>
+    <div id="tray"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+/* =========================================================================
+   COORDINATE SYSTEM  (worked out for b = 6, half = 3)
+   -------------------------------------------------------------------------
+   Render scale: one "x" length = X = 4 cells. CELL = pixel size of one cell.
+   Origin (0,0) in GRID coords = the x^2-tile's TOP-LEFT corner.
+   Rows increase downward; the "top" x-tiles live at NEGATIVE rows (above x^2).
+
+   Per question the workspace is sized to the finished square:
+       WCELLS = HCELLS = X + half   (= x + b/2)
+   and the grid origin is pushed DOWN by `half` rows so negative rows show.
+       ORIGIN_ROW = half ,  ORIGIN_COL = 0
+   pixel(col,row) = ( (col)*CELL , (row + ORIGIN_ROW)*CELL )
+
+   For b = 6 (half = 3, X = 4):
+     x^2-tile  : cols 0..3 , rows 0..3                  (anchored)
+     top tiles : cols 0..3 , rows -1, -2, -3  (3 tiles, stack upward)
+     right tiles: cols 4,5,6 , rows 0..3      (3 tiles, extend rightward)
+     GAP       : top-left (col 4, row -3); cols 4..6 x rows -3..-1  (3x3)
+                 -> flush to the right of the top column (col-4 seam)
+                 -> flush above the right row            (row-0  seam)
+     finished square: cols 0..6 , rows -3..3  = 7x7 = (x + 3)^2
+   ========================================================================= */
+const X = 4;                 // an x-length renders as 4 cells
+let CELL = 46;               // pixel size of one cell (tuned per question)
+
+const workspace = document.getElementById('workspace');
+const tray = document.getElementById('tray');
+
+/* ---- session question list: only EVEN b so b/2 is whole -------------- */
+function buildSession(){
+  const q = [2,4,6,8,10];                              // Q1–5 fixed progression
+  const pool = [2,4,6,8,10];
+  for(let i=0;i<5;i++) q.push(pool[Math.floor(Math.random()*pool.length)]); // Q6–10 random
+  return q;
+}
+
+let session = buildSession();
+let qIndex = 0, score = 0;
+
+/* ---- per-question state --------------------------------------------- */
+let B = 0, HALF = 0;         // current b and b/2
+let WCELLS = 0;              // workspace size in cells (= X + HALF)
+let topCount = 0, rightCount = 0;
+let stage = 1;               // 1 = place x-tiles, 2 = fill the gap
+let gapOcc = [];             // HALF x HALF occupancy grid for unit tiles
+let unitsPlaced = 0;
+let completed = false;
+let tiles = [];              // draggable tiles in play (x-tiles, then units)
+
+/* snap-zone rectangles in workspace-local pixels (recomputed per question) */
+let TOPZONE, RIGHTZONE, GAPRECT;
+
+/* convert grid (col,row) -> workspace-local pixel top-left */
+function gx(col){ return col*CELL; }
+function gy(row){ return (row + HALF)*CELL; }   // ORIGIN_ROW = HALF
+
+/* =========================================================================
+   TILE FACTORY
+   ========================================================================= */
+let seq = 0;
+function makeTile(type){
+  const t = {id:++seq, type, orientation:'h', placed:false, locked:false};
+  const el = document.createElement('div');
+  el.className = 'tile ' + type;
+  if(type==='x2'){ t.w=X; t.h=X; el.innerHTML='x<sup>2</sup>'; }
+  else if(type==='x'){ t.w=X; t.h=1; el.textContent='x'; }
+  else { t.w=1; t.h=1; el.textContent='1'; }
+  t.el = el; sizeTile(t);
+  el.addEventListener('mousedown', e=>onDown(e,t));
+  return t;
+}
+function sizeTile(t){
+  t.el.style.width  = (t.w*CELL - 2)+'px';
+  t.el.style.height = (t.h*CELL - 2)+'px';
+}
+/* orient an x-tile to match the zone it is dropped into */
+function setOrientation(t, o){
+  if(t.type!=='x' || t.orientation===o) return;
+  t.orientation = o;
+  if(o==='h'){ t.w=X; t.h=1; } else { t.w=1; t.h=X; }
+  sizeTile(t);
+}
+
+/* =========================================================================
+   QUESTION LOADING
+   ========================================================================= */
+function loadQuestion(){
+  B = session[qIndex]; HALF = B/2; WCELLS = X + HALF;
+  topCount = rightCount = unitsPlaced = 0;
+  stage = 1; completed = false;
+  tiles = []; seq = 0;
+  gapOcc = Array.from({length:HALF},()=>new Array(HALF).fill(0));
+
+  // size the workspace to the finished square
+  workspace.style.width  = (WCELLS*CELL)+'px';
+  workspace.style.height = (WCELLS*CELL)+'px';
+  workspace.style.backgroundSize = CELL+'px '+CELL+'px';
+
+  // clear dynamic children
+  workspace.querySelectorAll('.tile').forEach(n=>n.remove());
+  tray.innerHTML = '';
+  clearSuccessUI();
+
+  // compute snap-zone rectangles (workspace-local pixels)
+  TOPZONE   = {x0:gx(0),   y0:gy(-HALF),     x1:gx(X),        y1:gy(0)};
+  RIGHTZONE = {x0:gx(X),   y0:gy(0),         x1:gx(X+HALF),   y1:gy(X)};
+  GAPRECT   = {x0:gx(X),   y0:gy(-HALF),     x1:gx(X+HALF),   y1:gy(0)};
+
+  // anchor the x^2-tile (fixed, not draggable)
+  const x2 = makeTile('x2');
+  x2.placed = true; x2.locked = true;
+  x2.el.classList.add('anchor');
+  x2.el.style.position='absolute';
+  x2.el.style.left = gx(0)+'px';
+  x2.el.style.top  = gy(0)+'px';
+  workspace.appendChild(x2.el);
+
+  // supply the b x-tiles (stage 1)
+  for(let i=0;i<B;i++){ const t=makeTile('x'); tiles.push(t); tray.appendChild(t.el); }
+
+  // position + show the two glowing snap zones
+  placeOverlay('zoneTop',   TOPZONE);
+  placeOverlay('zoneRight', RIGHTZONE);
+  document.getElementById('zoneTop').style.display='block';
+  document.getElementById('zoneRight').style.display='block';
+
+  // header / text
+  document.getElementById('expr').textContent = `x² + ${B}x`;
+  document.getElementById('qnum').textContent = qIndex+1;
+  document.getElementById('score').textContent = score;
+  document.getElementById('nextBtn').disabled = true;
+  document.getElementById('result').className='result';
+  document.getElementById('result').innerHTML='';
+  setTip();
+}
+
+/* place an absolutely-positioned overlay element over a pixel rect */
+function placeOverlay(id, r){
+  const el = document.getElementById(id);
+  el.style.left = r.x0+'px'; el.style.top = r.y0+'px';
+  el.style.width = (r.x1-r.x0)+'px'; el.style.height = (r.y1-r.y0)+'px';
+}
+
+function setTip(){
+  const tip = document.getElementById('stagetip');
+  if(completed) tip.textContent='';
+  else if(stage===1) tip.innerHTML =
+    `<b>Stage 1.</b> Split the ${B} x-tiles evenly: ${HALF} along the top edge and ${HALF} down the right edge of the x²-tile.`;
+  else tip.innerHTML =
+    `<b>Stage 2.</b> Fill the ${HALF}×${HALF} corner gap with ${HALF*HALF} unit tiles to complete the square.`;
+}
+
+/* =========================================================================
+   DRAG & DROP
+   ========================================================================= */
+let drag=null, grabX=0, grabY=0, startX=0, startY=0, moved=false;
+
+function onDown(e, t){
+  if(completed || t.locked) return;     // anchor & placed tiles are fixed
+  e.preventDefault();
+  drag=t; moved=false; startX=e.clientX; startY=e.clientY;
+  const r=t.el.getBoundingClientRect();
+  grabX=e.clientX-r.left; grabY=e.clientY-r.top;
+  document.body.appendChild(t.el);
+  t.el.classList.add('dragging');
+  t.el.style.position='fixed'; t.el.style.zIndex=1000;
+  moveTo(e.clientX,e.clientY);
+}
+function moveTo(cx,cy){ drag.el.style.left=(cx-grabX)+'px'; drag.el.style.top=(cy-grabY)+'px'; }
+
+document.addEventListener('mousemove', e=>{
+  if(!drag) return;
+  if(Math.abs(e.clientX-startX)>4||Math.abs(e.clientY-startY)>4) moved=true;
+  moveTo(e.clientX,e.clientY);
+});
+
+document.addEventListener('mouseup', e=>{
+  if(!drag) return;
+  const t=drag; drag=null;
+  t.el.classList.remove('dragging'); t.el.style.zIndex='';
+
+  // workspace-local centre of the dropped tile
+  const ws=workspace.getBoundingClientRect();
+  const r=t.el.getBoundingClientRect();
+  const cx=r.left+r.width/2-ws.left, cy=r.top+r.height/2-ws.top;
+
+  if(t.type==='x')  dropXTile(t,cx,cy);
+  else              dropUnit(t,cx,cy);
+});
+
+function inRect(cx,cy,R){ return cx>=R.x0&&cx<=R.x1&&cy>=R.y0&&cy<=R.y1; }
+
+/* ---- STAGE 1: drop an x-tile onto the top or right edge --------------- */
+function dropXTile(t,cx,cy){
+  // TOP edge: horizontal tiles stack upward; the i-th sits at row -(i+1)
+  if(stage===1 && inRect(cx,cy,TOPZONE) && topCount<HALF){
+    setOrientation(t,'h');
+    lockAt(t, gx(0), gy(-(topCount+1)));   // row -(topCount+1)
+    topCount++;
+  }
+  // RIGHT edge: vertical tiles extend rightward; the i-th sits at col X+i
+  else if(stage===1 && inRect(cx,cy,RIGHTZONE) && rightCount<HALF){
+    setOrientation(t,'v');
+    lockAt(t, gx(X+rightCount), gy(0));
+    rightCount++;
+  }
+  else { returnToTray(t); return; }
+
+  // dim a zone once it is full
+  if(topCount>=HALF)   document.getElementById('zoneTop').style.display='none';
+  if(rightCount>=HALF) document.getElementById('zoneRight').style.display='none';
+
+  // both edges full -> reveal the gap and move to stage 2
+  if(topCount>=HALF && rightCount>=HALF) enterStage2();
+}
+
+/* ---- STAGE 2: drop a unit tile into the corner gap ------------------- */
+function dropUnit(t,cx,cy){
+  if(stage!==2 || !inRect(cx,cy,GAPRECT)){ returnToTray(t); return; }
+
+  // which gap cell is the tile over? (gc,gr in 0..HALF-1, gr=0 is the top row)
+  let gc = Math.round((cx - gx(X))/CELL - 0.5);
+  let gr = Math.round((cy - gy(-HALF))/CELL - 0.5);
+  gc=Math.max(0,Math.min(HALF-1,gc)); gr=Math.max(0,Math.min(HALF-1,gr));
+
+  // if that cell is taken, snap to the nearest empty gap cell instead
+  if(gapOcc[gr][gc]){ const e=nearestEmpty(gc,gr); if(!e){returnToTray(t);return;} gc=e.gc; gr=e.gr; }
+
+  gapOcc[gr][gc]=t.id;
+  lockAt(t, gx(X+gc), gy(-HALF)+gr*CELL);   // gap top-left is (col X, row -HALF)
+  unitsPlaced++;
+  if(unitsPlaced>=HALF*HALF) complete();
+}
+
+/* find the empty gap cell closest to a target cell */
+function nearestEmpty(tc,tr){
+  let best=null, bd=Infinity;
+  for(let r=0;r<HALF;r++) for(let c=0;c<HALF;c++){
+    if(gapOcc[r][c]) continue;
+    const d=(c-tc)**2+(r-tr)**2;
+    if(d<bd){bd=d; best={gc:c,gr:r};}
+  }
+  return best;
+}
+
+/* lock a tile at a workspace pixel position */
+function lockAt(t, px, py){
+  t.placed=true; t.locked=true;
+  t.el.classList.add('locked');
+  workspace.appendChild(t.el);
+  t.el.style.position='absolute';
+  t.el.style.left=px+'px'; t.el.style.top=py+'px';
+}
+function returnToTray(t){
+  t.el.style.position='static'; t.el.style.left=''; t.el.style.top='';
+  tray.appendChild(t.el);
+}
+
+/* =========================================================================
+   STAGE 2 ENTRY — reveal the missing-corner gap
+   ========================================================================= */
+function enterStage2(){
+  stage=2;
+  placeOverlay('gap', GAPRECT);
+  const gapEl=document.getElementById('gap');
+  gapEl.style.display='flex';
+  document.getElementById('gapDimTop').textContent = HALF;
+  document.getElementById('gapDimLeft').textContent = HALF;
+  // supply the (b/2)^2 unit tiles
+  for(let i=0;i<HALF*HALF;i++){ const u=makeTile('unit'); tiles.push(u); tray.appendChild(u.el); }
+  setTip();
+}
+
+/* =========================================================================
+   COMPLETION — flash the square, label sides, show the identity
+   ========================================================================= */
+function complete(){
+  completed=true; score++;
+  document.getElementById('score').textContent=score;
+  document.getElementById('gap').style.display='none';
+
+  // flash the full (x + half)^2 square outline (the whole workspace)
+  const sf=document.getElementById('squareFlash');
+  sf.style.left='0px'; sf.style.top='0px';
+  sf.style.width=(WCELLS*CELL)+'px'; sf.style.height=(WCELLS*CELL)+'px';
+  sf.classList.remove('show'); void sf.offsetWidth; sf.classList.add('show');
+
+  // side-length labels on the outer edges: both read "x + half"
+  const stageBox=document.getElementById('stageBox');
+  const padL=30, padT=30;  // matches .stage padding
+  const top=document.getElementById('sideTop');
+  top.textContent=`x + ${HALF}`;
+  top.style.display='block';
+  top.style.left=(padL)+'px'; top.style.top='4px'; top.style.width=(WCELLS*CELL)+'px';
+  top.style.textAlign='center';
+  const left=document.getElementById('sideLeft');
+  left.textContent=`x + ${HALF}`;
+  left.style.display='block';
+  left.style.left='4px'; left.style.top=(padT)+'px'; left.style.height=(WCELLS*CELL)+'px';
+  left.style.textAlign='center';
+
+  // identity string, built dynamically with Unicode superscripts
+  const c=HALF*HALF;
+  const res=document.getElementById('result');
+  res.className='result win';
+  res.innerHTML=`<div class="cheer">🎉 Perfect square!</div>
+                 <div class="identity">x² + ${B}x + ${c} = (x + ${HALF})²</div>`;
+  document.getElementById('stagetip').textContent='';
+  document.getElementById('nextBtn').disabled=false;
+}
+
+function clearSuccessUI(){
+  ['gap','squareFlash','sideTop','sideLeft','zoneTop','zoneRight','arrow'].forEach(id=>{
+    const el=document.getElementById(id); el.style.display='none'; el.classList.remove('show');
+  });
+}
+
+/* =========================================================================
+   CONTROLS
+   ========================================================================= */
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(completed) return;          // keep a finished board intact
+  loadQuestion();                // full reset: x^2 stays anchored, tiles return
+});
+
+/* Hint: animate an arrow toward the next correct zone. */
+document.getElementById('hintBtn').addEventListener('click', ()=>{
+  if(completed) return;
+  let R, label='⬇️', bx='0px', by='12px';
+  if(stage===1 && topCount<HALF){ R=TOPZONE; label='⬇️'; by='12px'; }       // fill top first
+  else if(stage===1){ R=RIGHTZONE; label='➡️'; bx='-12px'; by='0px'; }       // then right
+  else { R=GAPRECT; label='↗️'; bx='8px'; by='-8px'; }                       // then the gap
+  const a=document.getElementById('arrow');
+  a.textContent=label;
+  a.style.left=((R.x0+R.x1)/2 - 15)+'px';
+  a.style.top =((R.y0+R.y1)/2 - 15)+'px';
+  a.style.setProperty('--bx',bx); a.style.setProperty('--by',by);
+  a.classList.remove('show'); void a.offsetWidth; a.classList.add('show');
+});
+
+document.getElementById('nextBtn').addEventListener('click', ()=>{
+  qIndex++;
+  if(qIndex>=session.length){ showEndCard(); return; }
+  loadQuestion();
+});
+
+function showEndCard(){
+  document.querySelector('main').innerHTML=
+    `<div class="panel endcard">
+       <h2>Session complete! 🏆</h2>
+       <p style="font-size:18px">You completed <b>${score}</b> of ${session.length} squares.</p>
+       <button class="primary" onclick="location.reload()">Play again</button>
+     </div>`;
+}
+
+/* ---- boot ---- */
+loadQuestion();
+</script>
+</body>
+</html>
