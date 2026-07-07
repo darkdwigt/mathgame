@@ -7,7 +7,7 @@
 <style>
   /* ===== SHARED THEME (identical across all algebra-tile games) ===== */
   :root{
-    --cell:44px;
+    --cell:44px; --stage-pad:34px;
     --x2:#2dd4bf; --x2dark:#0f9488;
     --x:#4ade80; --xdark:#16a34a;
     --unit:#fbbf24; --unitdark:#d97706;
@@ -30,10 +30,10 @@
   header h1{font-size:24px;margin:0;font-weight:800;color:#ff6f3c;}
   header .meta{margin-left:auto;display:flex;gap:20px;font-size:16px;font-weight:700;}
   header .meta span b{color:var(--x2dark);}
-  main{max-width:1280px;margin:0 auto;padding:22px 20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+  main{max-width:1280px;margin:0 auto;padding:16px 20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
   .panel{background:var(--paper);border:3px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 4px 0 var(--line);}
 
-  .left{flex:0 0 280px;display:flex;flex-direction:column;gap:16px;}
+  .left{flex:0 0 220px;display:flex;flex-direction:column;gap:16px;}
   .problem{text-align:center;}
   .problem .label{font-size:13px;color:#a86f00;font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
   .problem .expr{font-size:34px;font-weight:800;margin:8px 0 0;}
@@ -53,9 +53,9 @@
   .legend{font-size:13px;color:#5b4a8a;line-height:1.7;font-weight:600;}
   .legend .swatch{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:middle;margin-right:6px;}
 
-  .center{flex:1 1 480px;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;}
+  .center{flex:1 1 380px;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;}
   .board-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;display:flex;justify-content:center;}
-  .stage{position:relative;padding:34px 0 0 34px;flex:0 0 auto;}
+  .stage{position:relative;padding:var(--stage-pad) 0 0 var(--stage-pad);flex:0 0 auto;}
   #workspace{position:relative;
     width:calc(var(--cell) * 10);height:calc(var(--cell) * 10);
     background:var(--paper);border:3px dashed #ffcf70;border-radius:12px;
@@ -73,7 +73,7 @@
   .corner-hint.show{display:block;animation:flash 1.6s ease;}
   @keyframes flash{0%,100%{opacity:0}20%,80%{opacity:1}}
 
-  .right{flex:1 1 320px;min-width:280px;}
+  .right{flex:1 1 240px;min-width:200px;}
   .right h2{font-size:15px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em;color:#a86f00;font-weight:800;}
   .right .hint{font-size:13px;color:#8a7bb8;margin:0 0 12px;font-weight:600;}
   #tray{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;min-height:120px;}
@@ -90,9 +90,24 @@
   .endcard{flex:1 1 100%;text-align:center;padding:30px;}
   .endcard h2{font-size:26px;color:#ff6f3c;}
 
-  @media (max-width:900px){
-    main{flex-direction:column;align-items:stretch;}
+  @media (orientation:portrait){
+    main{flex-direction:column;align-items:stretch;padding:10px 12px;gap:8px;}
     .left,.center,.right{flex:1 1 auto;width:100%;min-width:0;}
+    :root{--cell:30px;--stage-pad:14px;}
+    header{padding:8px 14px;gap:10px;}
+    header h1{font-size:17px;}
+    .panel{padding:8px;border-radius:12px;}
+    .left{gap:8px;}
+    .problem .expr{font-size:24px;}
+    .problem .label{font-size:11px;}
+    .result{min-height:28px;margin-top:6px;}
+    .legend{font-size:11px;line-height:1.3;}
+    .controls{gap:5px;}
+    button{padding:7px 9px;}
+    #tray{min-height:64px;gap:6px;}
+    .right h2{font-size:13px;}
+    .right .hint{font-size:11px;margin:0 0 5px;}
+    .hint-msg{font-size:12px;min-height:14px;}
   }
 </style>
 </head>
@@ -182,7 +197,12 @@ const GAME = {
    Drag uses Pointer Events (mouse, touch, and pen all fire the same events),
    so every game works on tablets and touchscreens as well as desktop.
    ========================================================================= */
-const X=3, GRID=10, CELL=44;
+const X=3, GRID=10;
+function cssNum(name,fallback){
+  const n=parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+  return Number.isFinite(n) ? n : fallback;
+}
+let CELL=cssNum('--cell',44), STAGE_PAD=cssNum('--stage-pad',34);
 const workspace=document.getElementById('workspace');
 const tray=document.getElementById('tray');
 
@@ -331,8 +351,8 @@ function onSuccess(r,minX,minY,bw,bh){
   res.className='result win';
   res.innerHTML=`<div class="cheer">${r.cheer}</div><div class="factored">${r.identity}</div>`;
   const top=document.getElementById('dimTop'), left=document.getElementById('dimLeft');
-  top.style.display='flex'; top.style.left=(34+minX*CELL)+'px'; top.style.width=(bw*CELL)+'px'; top.innerHTML=r.topLabel;
-  left.style.display='flex'; left.style.top=(34+minY*CELL)+'px'; left.style.height=(bh*CELL)+'px'; left.innerHTML=r.leftLabel;
+  top.style.display='flex'; top.style.left=(STAGE_PAD+minX*CELL)+'px'; top.style.width=(bw*CELL)+'px'; top.innerHTML=r.topLabel;
+  left.style.display='flex'; left.style.top=(STAGE_PAD+minY*CELL)+'px'; left.style.height=(bh*CELL)+'px'; left.innerHTML=r.leftLabel;
   const hiTop=document.getElementById('hiTop');
   hiTop.style.display='block'; hiTop.style.left=(minX*CELL)+'px'; hiTop.style.top=(minY*CELL)+'px';
   hiTop.style.width=(bw*CELL)+'px'; hiTop.style.height=CELL+'px';
@@ -360,6 +380,18 @@ function showEndCard(){
        <p style="font-size:18px">You solved <b>${score}</b> of ${session.length}.</p>
        <button class="primary" onclick="location.reload()">Play again</button></div>`;
 }
+
+/* ---- RESPONSIVE: --cell/--stage-pad change at the portrait breakpoint (CSS),
+   so re-read them and re-lay-out tiles at their existing grid positions. ---- */
+function applyResponsiveSizing(){
+  const newCell=cssNum('--cell',44), newPad=cssNum('--stage-pad',34);
+  if(newCell===CELL && newPad===STAGE_PAD) return;
+  CELL=newCell; STAGE_PAD=newPad;
+  tiles.forEach(t=>{ sizeTile(t); if(t.placed) placeTile(t,t.gx,t.gy); });
+}
+let respTimer=null;
+window.addEventListener('resize',()=>{ clearTimeout(respTimer); respTimer=setTimeout(applyResponsiveSizing,120); });
+window.addEventListener('orientationchange',()=>setTimeout(applyResponsiveSizing,150));
 
 /* ---- boot ---- */
 document.getElementById('goal').textContent=GAME.goal;

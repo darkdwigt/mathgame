@@ -6,6 +6,7 @@
 <title>Block Party! Prime or Composite?</title>
 <style>
   :root{
+    --bcell:30px;
     --bg:#fff6e0; --paper:#ffffff; --line:#ffe1a8;
     --ink:#2b2350; --block:#ff9f1c; --blockline:#e07c00;
     --prime:#4d8fff; --primedark:#2f66cc;
@@ -30,10 +31,10 @@
   header .meta span.prime b{color:var(--primedark);}
   header .meta span.composite b{color:var(--compositedark);}
 
-  main{max-width:1200px;margin:0 auto;padding:22px 20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+  main{max-width:1200px;margin:0 auto;padding:16px 20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
   .panel{background:var(--paper);border:3px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 4px 0 var(--line);}
 
-  .left{flex:0 0 260px;display:flex;flex-direction:column;gap:16px;}
+  .left{flex:0 0 200px;display:flex;flex-direction:column;gap:16px;}
   .left h2{margin:0 0 8px;font-size:16px;color:#a86f00;}
   .question{text-align:center;}
   .question .num{font-size:64px;font-weight:800;color:var(--block);text-shadow:2px 2px 0 var(--blockline);}
@@ -49,24 +50,24 @@
   .msg.info{color:#a86f00;}
   .msg.bad{color:var(--bad);}
 
-  .center{flex:1 1 480px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0;}
+  .center{flex:1 1 400px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0;}
   .center h2{margin:0;font-size:16px;color:#a86f00;align-self:flex-start;}
-  .board-wrap{width:100%;max-width:calc(30px * 20);overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .board-wrap{width:100%;max-width:calc(var(--bcell) * 20);overflow-x:auto;-webkit-overflow-scrolling:touch;}
   #grid{position:relative;
-    width:calc(30px * 20); height:calc(30px * 8);
+    width:calc(var(--bcell) * 20); height:calc(var(--bcell) * 8);
     background:#fffdf5;border:3px dashed #ffcf70;border-radius:12px;
     background-image:linear-gradient(to right,#ffedc4 1px,transparent 1px),
                      linear-gradient(to bottom,#ffedc4 1px,transparent 1px);
-    background-size:30px 30px;}
+    background-size:var(--bcell) var(--bcell);}
   #tray{width:100%;min-height:70px;background:#fff9ec;border:3px solid var(--line);border-radius:14px;
         padding:10px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;}
   .tray-label{font-size:13px;color:#a86f00;font-weight:700;align-self:flex-start;}
-  .block{position:relative;width:28px;height:28px;border-radius:7px;background:var(--block);
+  .block{position:relative;width:calc(var(--bcell) - 2px);height:calc(var(--bcell) - 2px);border-radius:7px;background:var(--block);
         border:2px solid var(--blockline);box-shadow:0 2px 0 var(--blockline);cursor:grab;touch-action:none;}
   .block.dragging{cursor:grabbing;box-shadow:0 6px 12px rgba(0,0,0,.3);z-index:1000;}
   .grid-actions{display:flex;gap:10px;}
 
-  .right{flex:0 0 300px;display:flex;flex-direction:column;gap:16px;}
+  .right{flex:0 0 220px;display:flex;flex-direction:column;gap:16px;}
   .chip-panel{text-align:center;}
   .chip-panel .lbl{font-size:13px;color:#a86f00;font-weight:700;margin-bottom:10px;}
   .chip-holder{display:flex;justify-content:center;min-height:80px;align-items:center;}
@@ -98,11 +99,28 @@
   .endcard .col h3{margin-bottom:8px;}
   .endcard .col .list{font-size:20px;font-weight:800;line-height:1.8;}
 
-  @media (max-width:900px){
-    main{flex-direction:column;align-items:stretch;}
+  @media (orientation:portrait){
+    main{flex-direction:column;align-items:stretch;padding:10px 12px;gap:8px;}
     .left,.center,.right{flex:1 1 auto;width:100%;min-width:0;}
     .right{flex-direction:row;flex-wrap:wrap;}
-    .right .panel,.right .zone{flex:1 1 260px;}
+    .right .panel,.right .zone{flex:1 1 200px;}
+    :root{--bcell:20px;}
+    header{padding:8px 14px;gap:10px;}
+    header h1{font-size:17px;}
+    header .meta{font-size:13px;gap:10px;}
+    .panel{padding:8px;border-radius:12px;}
+    .left h2,.center h2{font-size:13px;}
+    .question .num{font-size:44px;}
+    .question .ask{font-size:13px;}
+    .msg{min-height:34px;font-size:13px;}
+    button{padding:8px 10px;}
+    #tray{min-height:50px;padding:6px;gap:4px;}
+    .chip-panel .lbl{font-size:11px;margin-bottom:6px;}
+    .chip-holder{min-height:56px;}
+    .chip{width:52px;height:52px;font-size:22px;}
+    .zone{padding:8px;min-height:64px;}
+    .zone h3{font-size:13px;margin:0 0 4px;}
+    .pill{width:26px;height:26px;font-size:12px;}
   }
 </style>
 </head>
@@ -159,7 +177,12 @@
 "use strict";
 
 /* ---------- setup ---------- */
-const CELL=30, GRID_W=20, GRID_H=8;
+function cssNum(name,fallback){
+  const n=parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+  return Number.isFinite(n) ? n : fallback;
+}
+let CELL=cssNum('--bcell',30);
+const GRID_W=20, GRID_H=8;
 const gridEl=document.getElementById('grid');
 const trayEl=document.getElementById('tray');
 const chipHolder=document.getElementById('chipHolder');
@@ -398,6 +421,18 @@ function showEndCard(){
 }
 function primesList(){ return NUMBERS.filter(isPrime); }
 function compositesList(){ return NUMBERS.filter(n=>!isPrime(n)); }
+
+/* ---- RESPONSIVE: --bcell changes at the portrait breakpoint (CSS), so
+   re-read it and re-lay-out any placed blocks at their existing grid cells. ---- */
+function applyResponsiveSizing(){
+  const newCell=cssNum('--bcell',30);
+  if(newCell===CELL) return;
+  CELL=newCell;
+  blocks.forEach(b=>{ if(b.placed) placeBlock(b,b.gx,b.gy); });
+}
+let respTimer=null;
+window.addEventListener('resize',()=>{ clearTimeout(respTimer); respTimer=setTimeout(applyResponsiveSizing,120); });
+window.addEventListener('orientationchange',()=>setTimeout(applyResponsiveSizing,150));
 
 /* ---------- boot ---------- */
 loadQuestion();

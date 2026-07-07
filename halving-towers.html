@@ -29,10 +29,10 @@
   header .meta{margin-left:auto;display:flex;gap:20px;font-size:16px;font-weight:700;}
   header .meta b{color:var(--adark);}
 
-  main{max-width:1200px;margin:0 auto;padding:22px 20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+  main{max-width:1200px;margin:0 auto;padding:16px 20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
   .panel{background:var(--paper);border:3px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 4px 0 var(--line);}
 
-  .left{flex:0 0 260px;display:flex;flex-direction:column;gap:16px;}
+  .left{flex:0 0 200px;display:flex;flex-direction:column;gap:16px;}
   .question{text-align:center;}
   .question .num{font-size:60px;font-weight:800;color:var(--block);text-shadow:2px 2px 0 var(--blockline);}
   .question .ask{font-size:15px;font-weight:700;margin-top:6px;}
@@ -80,9 +80,32 @@
   .endcard h2{font-size:28px;color:#ff6f3c;}
   .endcard .list{font-size:20px;font-weight:800;line-height:2;color:var(--adark);}
 
-  @media (max-width:900px){
-    main{flex-direction:column;align-items:stretch;}
+  @media (orientation:portrait){
+    main{flex-direction:column;align-items:stretch;padding:10px 12px;gap:8px;}
     .left,.center,.right{flex:1 1 auto;width:100%;min-width:0;}
+    header{padding:8px 14px;gap:10px;}
+    header h1{font-size:17px;}
+    .panel{padding:8px;border-radius:12px;}
+    .left{gap:8px;}
+    .question .num{font-size:40px;}
+    .question .ask{font-size:12px;}
+    .msg{min-height:34px;font-size:12px;}
+    button{padding:7px 9px;}
+    .towers{gap:10px;}
+    .tower h3{font-size:12px;}
+    .tower .count{font-size:11px;}
+    .well{width:56px;height:240px;padding:4px;gap:3px;}
+    .block{width:40px;height:16px;}
+    .eq-panel h2{font-size:13px;margin:0 0 6px;}
+    .eq-row{font-size:16px;gap:6px;}
+    .eq-row input,.eq-row .given{width:40px;height:40px;font-size:18px;}
+    .checkBtn{margin-top:8px;}
+  }
+  @media (orientation:landscape) and (max-height:820px){
+    main{padding:10px 20px;gap:14px;}
+    .panel{padding:12px;}
+    .well{height:300px;gap:3px;}
+    .block{height:20px;}
   }
 </style>
 </head>
