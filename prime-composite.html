@@ -235,6 +235,7 @@ let CELL=cssNum('--bcell',30);
    against — freeing that space lets --bcell render meaningfully bigger. */
 const GRID_W=20, GRID_H=6;
 const gridEl=document.getElementById('grid');
+const boardWrapEl=document.querySelector('.board-wrap');
 const trayEl=document.getElementById('tray');
 const chipHolder=document.getElementById('chipHolder');
 const zonePrime=document.getElementById('zonePrime');
@@ -282,8 +283,9 @@ function loadQuestion(){
 /* ---- ADAPTIVE FIT: start from the breakpoint's preferred --bcell size, then
    GROW it to use up spare space on large screens (desktop/tablet), or SHRINK
    it as far as needed for this particular N (the tray holds N unit blocks),
-   so the page never needs to scroll while staying as large/touch-friendly as
-   possible either way. ---- */
+   so the page never needs to scroll and the grid never needs its own
+   horizontal scrollbar inside .board-wrap, while staying as large/
+   touch-friendly as possible either way. ---- */
 const BCELL_MAX=52;
 function fitLayout(){
   document.documentElement.style.removeProperty('--bcell');   // back to the CSS breakpoint default
@@ -292,7 +294,8 @@ function fitLayout(){
   CELL=cell;
   let guard=0;
   const fits=()=>document.documentElement.scrollHeight<=window.innerHeight &&
-                  document.documentElement.scrollWidth<=window.innerWidth;
+                  document.documentElement.scrollWidth<=window.innerWidth &&
+                  gridEl.scrollWidth<=boardWrapEl.clientWidth+1;   // no internal grid scrollbar
   const resize=()=>{ document.documentElement.style.setProperty('--bcell',cell+'px'); CELL=cell; };
   while(fits() && cell<BCELL_MAX && guard++<25){ cell+=2; resize(); }
   if(!fits() && cell>22){ cell-=2; resize(); }
