@@ -27,6 +27,10 @@
          display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
   header h1{font-size:24px;margin:0;font-weight:800;color:#ff6f3c;}
   header .meta{margin-left:auto;display:flex;gap:20px;font-size:16px;font-weight:700;}
+  .home-link{display:flex;align-items:center;justify-content:center;width:40px;height:40px;
+    border-radius:50%;background:#fff6e0;border:3px solid var(--line);font-size:20px;
+    text-decoration:none;flex:0 0 auto;box-shadow:0 3px 0 var(--line);transition:.12s;}
+  .home-link:hover{transform:translateY(1px);box-shadow:0 2px 0 var(--line);}
   header .meta b{color:var(--adark);}
 
   main{max-width:1200px;margin:0 auto;padding:16px 20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
@@ -80,38 +84,56 @@
   .endcard h2{font-size:28px;color:#ff6f3c;}
   .endcard .list{font-size:20px;font-weight:800;line-height:2;color:var(--adark);}
 
+  /* ===== REACTION OVERLAY (shared across all games) ===== */
+  #reactionOverlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    pointer-events:none;z-index:9999;}
+  #reactionOverlay img{max-width:38vmin;max-height:38vmin;border-radius:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;}
+  #reactionOverlay img.show{animation:reactionFade .75s ease forwards;}
+  @keyframes reactionFade{
+    0%{opacity:0;transform:scale(.6);}
+    18%{opacity:1;transform:scale(1.06);}
+    28%{transform:scale(1);}
+    72%{opacity:1;}
+    100%{opacity:0;}
+  }
+
   @media (orientation:portrait){
-    main{flex-direction:column;align-items:stretch;padding:10px 12px;gap:8px;}
+    main{flex-direction:column;align-items:stretch;padding:8px 10px;gap:6px;}
     .left,.center,.right{flex:1 1 auto;width:100%;min-width:0;}
-    header{padding:8px 14px;gap:10px;}
-    header h1{font-size:17px;}
-    .panel{padding:8px;border-radius:12px;}
-    .left{gap:8px;}
-    .question .num{font-size:40px;}
-    .question .ask{font-size:12px;}
-    .msg{min-height:34px;font-size:12px;}
-    button{padding:7px 9px;}
-    .towers{gap:10px;}
-    .tower h3{font-size:12px;}
-    .tower .count{font-size:11px;}
-    .well{width:56px;height:240px;padding:4px;gap:3px;}
-    .block{width:40px;height:16px;}
-    .eq-panel h2{font-size:13px;margin:0 0 6px;}
-    .eq-row{font-size:16px;gap:6px;}
-    .eq-row input,.eq-row .given{width:40px;height:40px;font-size:18px;}
-    .checkBtn{margin-top:8px;}
+    header{padding:6px 12px;gap:8px;}
+    .home-link{width:32px;height:32px;font-size:16px;}
+    header h1{font-size:15px;}
+    .panel{padding:6px;border-radius:12px;}
+    .left{gap:6px;}
+    .question .num{font-size:34px;}
+    .question .ask{font-size:11px;margin-top:4px;}
+    .msg{min-height:26px;font-size:11px;padding:4px 3px;}
+    button{padding:6px 8px;}
+    .towers{gap:8px;}
+    .tower h3{font-size:11px;}
+    .tower .count{font-size:10px;}
+    .well{width:52px;height:300px;padding:3px;gap:2px;}
+    .block{width:46px;height:22px;}
+    .eq-panel h2{font-size:12px;margin:0 0 4px;}
+    .eq-row{font-size:15px;gap:5px;}
+    .eq-row input,.eq-row .given{width:38px;height:38px;font-size:17px;}
+    .checkBtn{margin-top:6px;}
   }
   @media (orientation:landscape) and (max-height:820px){
-    main{padding:10px 20px;gap:14px;}
-    .panel{padding:12px;}
-    .well{height:300px;gap:3px;}
-    .block{height:20px;}
+    main{padding:8px 20px;gap:10px;}
+    .panel{padding:8px;}
+    .well{height:290px;gap:2px;}
+    .block{height:22px;}
   }
 </style>
 </head>
 <body>
 
+<div id="reactionOverlay"></div>
+
 <header>
+  <a class="home-link" href="index.html" title="Back to home" aria-label="Back to home">🏠</a>
   <h1>🧱➗ Halving Towers</h1>
   <div class="meta">
     <span>Number <b id="qnum">1</b>/<b id="qtotal">6</b></span>
@@ -167,6 +189,21 @@
 
 <script>
 "use strict";
+
+/* ===== REACTION OVERLAY (shared across all games) ===== */
+const HAPPY_IMAGES=['assets/reactions/happy-1.webp','assets/reactions/happy-2.jpg','assets/reactions/happy-3.jpg'];
+const SAD_IMAGES=['assets/reactions/sad-1.jpg','assets/reactions/sad-2.jpeg','assets/reactions/sad-3.jpeg'];
+function showReaction(kind){
+  const list = kind==='happy' ? HAPPY_IMAGES : SAD_IMAGES;
+  const src = list[Math.floor(Math.random()*list.length)];
+  const overlay = document.getElementById('reactionOverlay');
+  overlay.innerHTML='';
+  const img=document.createElement('img');
+  img.src=src;
+  overlay.appendChild(img);
+  requestAnimationFrame(()=>img.classList.add('show'));
+  setTimeout(()=>{ img.remove(); },800);
+}
 
 const SEQUENCE=[2,4,6,8,10,12];
 document.getElementById('qtotal').textContent=SEQUENCE.length;
@@ -293,6 +330,7 @@ document.getElementById('checkBtn').addEventListener('click',()=>{
   const cA=wellA.children.length;
   if(a===cA && b===cA && a+b===TWO_N){
     solved=true; score++;
+    showReaction('happy');
     document.getElementById('score').textContent=score;
     msg.className='msg good';
     msg.textContent=`🎉 Well done! ${N} + ${N} = ${TWO_N}`;
@@ -300,6 +338,7 @@ document.getElementById('checkBtn').addEventListener('click',()=>{
     inA.disabled=true; inB.disabled=true; document.getElementById('checkBtn').disabled=true;
     setTimeout(()=>{ idx++; if(idx>=SEQUENCE.length) showEndCard(); else loadQuestion(); }, 1300);
   } else {
+    showReaction('sad');
     msg.className='msg bad';
     msg.textContent='Not quite — count the blocks in each tower and try again.';
     [inA,inB].forEach(inp=>{ inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); });

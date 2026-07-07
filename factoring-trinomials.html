@@ -29,6 +29,10 @@
          display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
   header h1{font-size:24px;margin:0;font-weight:800;color:#ff6f3c;}
   header .meta{margin-left:auto;display:flex;gap:20px;font-size:16px;font-weight:700;}
+  .home-link{display:flex;align-items:center;justify-content:center;width:40px;height:40px;
+    border-radius:50%;background:#fff6e0;border:3px solid var(--line);font-size:20px;
+    text-decoration:none;flex:0 0 auto;box-shadow:0 3px 0 var(--line);transition:.12s;}
+  .home-link:hover{transform:translateY(1px);box-shadow:0 2px 0 var(--line);}
   header .meta span b{color:var(--x2dark);}
   main{max-width:1280px;margin:0 auto;padding:16px 20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
   .panel{background:var(--paper);border:3px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 4px 0 var(--line);}
@@ -90,30 +94,48 @@
   .endcard{flex:1 1 100%;text-align:center;padding:30px;}
   .endcard h2{font-size:26px;color:#ff6f3c;}
 
+  /* ===== REACTION OVERLAY (shared across all games) ===== */
+  #reactionOverlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    pointer-events:none;z-index:9999;}
+  #reactionOverlay img{max-width:38vmin;max-height:38vmin;border-radius:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;}
+  #reactionOverlay img.show{animation:reactionFade .75s ease forwards;}
+  @keyframes reactionFade{
+    0%{opacity:0;transform:scale(.6);}
+    18%{opacity:1;transform:scale(1.06);}
+    28%{transform:scale(1);}
+    72%{opacity:1;}
+    100%{opacity:0;}
+  }
+
   @media (orientation:portrait){
-    main{flex-direction:column;align-items:stretch;padding:10px 12px;gap:8px;}
+    main{flex-direction:column;align-items:stretch;padding:8px 10px;gap:6px;}
     .left,.center,.right{flex:1 1 auto;width:100%;min-width:0;}
-    :root{--cell:30px;--stage-pad:14px;}
-    header{padding:8px 14px;gap:10px;}
-    header h1{font-size:17px;}
-    .panel{padding:8px;border-radius:12px;}
-    .left{gap:8px;}
-    .problem .expr{font-size:24px;}
-    .problem .label{font-size:11px;}
-    .result{min-height:28px;margin-top:6px;}
-    .legend{font-size:11px;line-height:1.3;}
-    .controls{gap:5px;}
-    button{padding:7px 9px;}
-    #tray{min-height:64px;gap:6px;}
-    .right h2{font-size:13px;}
-    .right .hint{font-size:11px;margin:0 0 5px;}
-    .hint-msg{font-size:12px;min-height:14px;}
+    :root{--cell:44px;--stage-pad:12px;}
+    header{padding:6px 12px;gap:8px;}
+    .home-link{width:32px;height:32px;font-size:16px;}
+    header h1{font-size:16px;}
+    .panel{padding:6px;border-radius:12px;}
+    .left{gap:6px;}
+    .problem .expr{font-size:22px;}
+    .problem .label{font-size:10px;}
+    .result{min-height:22px;margin-top:4px;}
+    .legend{display:none;}
+    .controls{gap:4px;}
+    button{padding:6px 8px;}
+    #tray{min-height:56px;gap:5px;}
+    .right h2{font-size:12px;}
+    .right .hint{font-size:10px;margin:0 0 4px;}
+    .hint-msg{font-size:11px;min-height:13px;}
   }
 </style>
 </head>
 <body>
 
+<div id="reactionOverlay"></div>
+
 <header>
+  <a class="home-link" href="index.html" title="Back to home" aria-label="Back to home">🏠</a>
   <h1>🔷 Algebra Tiles — Factoring Trinomials</h1>
   <div class="meta">
     <span>Question <b id="qnum">1</b>/10</span>
@@ -192,6 +214,21 @@ const GAME = {
   }
 };
 
+/* ===== REACTION OVERLAY (shared across all games) ===== */
+const HAPPY_IMAGES=['assets/reactions/happy-1.webp','assets/reactions/happy-2.jpg','assets/reactions/happy-3.jpg'];
+const SAD_IMAGES=['assets/reactions/sad-1.jpg','assets/reactions/sad-2.jpeg','assets/reactions/sad-3.jpeg'];
+function showReaction(kind){
+  const list = kind==='happy' ? HAPPY_IMAGES : SAD_IMAGES;
+  const src = list[Math.floor(Math.random()*list.length)];
+  const overlay = document.getElementById('reactionOverlay');
+  overlay.innerHTML='';
+  const img=document.createElement('img');
+  img.src=src;
+  overlay.appendChild(img);
+  requestAnimationFrame(()=>img.classList.add('show'));
+  setTimeout(()=>{ img.remove(); },800);
+}
+
 /* =========================================================================
    SHARED ENGINE  — identical in every algebra-tile game. Do not fork.
    Drag uses Pointer Events (mouse, touch, and pen all fire the same events),
@@ -207,7 +244,7 @@ const workspace=document.getElementById('workspace');
 const tray=document.getElementById('tray');
 
 let session=GAME.buildSession();
-let qIndex=0, score=0, tiles=[], solved=false, Q=null, seq=0;
+let qIndex=0, score=0, tiles=[], solved=false, Q=null, seq=0, formedWrongOnce=false;
 
 /* ---- tile factory ---- */
 function makeTile(type){
@@ -225,7 +262,7 @@ function sizeTile(t){ t.el.style.width=(t.w*CELL-2)+'px'; t.el.style.height=(t.h
 
 /* ---- load a question ---- */
 function loadQuestion(){
-  solved=false; tiles=[]; seq=0;
+  solved=false; tiles=[]; seq=0; formedWrongOnce=false;
   workspace.querySelectorAll('.tile').forEach(n=>n.remove());
   tray.innerHTML=''; clearSuccessUI();
   Q=session[qIndex];
@@ -237,6 +274,23 @@ function loadQuestion(){
   document.getElementById('result').innerHTML='';
   for(const s of GAME.supply(Q)) for(let i=0;i<s.n;i++) tiles.push(makeTile(s.type));
   tiles.forEach(t=>tray.appendChild(t.el));
+  fitLayout();
+}
+
+/* ---- ADAPTIVE FIT: start from the breakpoint's preferred --cell size, then
+   shrink only as far as needed for this particular question's tile count
+   (some trinomials need far more tiles than others) so the page never
+   needs to scroll, while staying as large/touch-friendly as possible. ---- */
+function fitLayout(){
+  CELL=cssNum('--cell',44); STAGE_PAD=cssNum('--stage-pad',34);
+  tiles.forEach(sizeTile);
+  let guard=0;
+  const fits=()=>document.documentElement.scrollHeight<=window.innerHeight &&
+                  document.documentElement.scrollWidth<=window.innerWidth;
+  while(!fits() && CELL>20 && guard++<25){
+    CELL-=2;
+    tiles.forEach(t=>{ sizeTile(t); if(t.placed) placeTile(t,t.gx,t.gy); });
+  }
 }
 
 /* ---- DRAG & DROP (Pointer Events: mouse + touch + pen) ----
@@ -331,21 +385,23 @@ function returnToTray(t){
 /* ---- WIN DETECTION: all tiles placed + solid filled rectangle, then GAME.check ---- */
 function checkWin(){
   if(solved) return;
-  if(tiles.some(t=>!t.placed)) return;
+  if(tiles.some(t=>!t.placed)){ formedWrongOnce=false; return; }
   let minX=GRID,minY=GRID,maxX=-1,maxY=-1,filled=0;
   const occ=occupancy();
   for(let y=0;y<GRID;y++) for(let x=0;x<GRID;x++) if(occ[y][x]){
     filled++; if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
   }
   const bw=maxX-minX+1, bh=maxY-minY+1;
-  if(bw*bh!==filled) return;                        // bounding box must be gap-free
+  if(bw*bh!==filled){ formedWrongOnce=false; return; }   // bounding box must be gap-free
   const r=GAME.check(Q,bw,bh);
   if(r) onSuccess(r,minX,minY,bw,bh);
+  else if(!formedWrongOnce){ formedWrongOnce=true; showReaction('sad'); }
 }
 
 /* ---- SUCCESS: highlight the two factor edges, label them, show the identity ---- */
 function onSuccess(r,minX,minY,bw,bh){
   solved=true; score++;
+  showReaction('happy');
   document.getElementById('score').textContent=score;
   const res=document.getElementById('result');
   res.className='result win';
@@ -383,15 +439,9 @@ function showEndCard(){
 
 /* ---- RESPONSIVE: --cell/--stage-pad change at the portrait breakpoint (CSS),
    so re-read them and re-lay-out tiles at their existing grid positions. ---- */
-function applyResponsiveSizing(){
-  const newCell=cssNum('--cell',44), newPad=cssNum('--stage-pad',34);
-  if(newCell===CELL && newPad===STAGE_PAD) return;
-  CELL=newCell; STAGE_PAD=newPad;
-  tiles.forEach(t=>{ sizeTile(t); if(t.placed) placeTile(t,t.gx,t.gy); });
-}
 let respTimer=null;
-window.addEventListener('resize',()=>{ clearTimeout(respTimer); respTimer=setTimeout(applyResponsiveSizing,120); });
-window.addEventListener('orientationchange',()=>setTimeout(applyResponsiveSizing,150));
+window.addEventListener('resize',()=>{ clearTimeout(respTimer); respTimer=setTimeout(fitLayout,120); });
+window.addEventListener('orientationchange',()=>setTimeout(fitLayout,150));
 
 /* ---- boot ---- */
 document.getElementById('goal').textContent=GAME.goal;

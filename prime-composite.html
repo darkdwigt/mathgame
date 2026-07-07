@@ -28,6 +28,10 @@
          display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
   header h1{font-size:26px;margin:0;font-weight:800;color:#ff6f3c;}
   header .meta{margin-left:auto;display:flex;gap:20px;font-size:16px;font-weight:700;}
+  .home-link{display:flex;align-items:center;justify-content:center;width:40px;height:40px;
+    border-radius:50%;background:#fff6e0;border:3px solid var(--line);font-size:20px;
+    text-decoration:none;flex:0 0 auto;box-shadow:0 3px 0 var(--line);transition:.12s;}
+  .home-link:hover{transform:translateY(1px);box-shadow:0 2px 0 var(--line);}
   header .meta span.prime b{color:var(--primedark);}
   header .meta span.composite b{color:var(--compositedark);}
 
@@ -99,26 +103,41 @@
   .endcard .col h3{margin-bottom:8px;}
   .endcard .col .list{font-size:20px;font-weight:800;line-height:1.8;}
 
+  /* ===== REACTION OVERLAY (shared across all games) ===== */
+  #reactionOverlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    pointer-events:none;z-index:9999;}
+  #reactionOverlay img{max-width:38vmin;max-height:38vmin;border-radius:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;}
+  #reactionOverlay img.show{animation:reactionFade .75s ease forwards;}
+  @keyframes reactionFade{
+    0%{opacity:0;transform:scale(.6);}
+    18%{opacity:1;transform:scale(1.06);}
+    28%{transform:scale(1);}
+    72%{opacity:1;}
+    100%{opacity:0;}
+  }
+
   @media (orientation:portrait){
-    main{flex-direction:column;align-items:stretch;padding:10px 12px;gap:8px;}
+    main{flex-direction:column;align-items:stretch;padding:8px 10px;gap:6px;}
     .left,.center,.right{flex:1 1 auto;width:100%;min-width:0;}
     .right{flex-direction:row;flex-wrap:wrap;}
     .right .panel,.right .zone{flex:1 1 200px;}
-    :root{--bcell:20px;}
-    header{padding:8px 14px;gap:10px;}
-    header h1{font-size:17px;}
-    header .meta{font-size:13px;gap:10px;}
-    .panel{padding:8px;border-radius:12px;}
-    .left h2,.center h2{font-size:13px;}
-    .question .num{font-size:44px;}
-    .question .ask{font-size:13px;}
-    .msg{min-height:34px;font-size:13px;}
-    button{padding:8px 10px;}
-    #tray{min-height:50px;padding:6px;gap:4px;}
-    .chip-panel .lbl{font-size:11px;margin-bottom:6px;}
-    .chip-holder{min-height:56px;}
-    .chip{width:52px;height:52px;font-size:22px;}
-    .zone{padding:8px;min-height:64px;}
+    :root{--bcell:30px;}
+    header{padding:6px 12px;gap:8px;}
+    .home-link{width:32px;height:32px;font-size:16px;}
+    header h1{font-size:16px;}
+    header .meta{font-size:12px;gap:8px;}
+    .panel{padding:6px;border-radius:12px;}
+    .left h2,.center h2{font-size:12px;margin:0 0 4px;}
+    .question .num{font-size:36px;}
+    .question .ask{font-size:11px;margin-top:3px;}
+    .msg{min-height:26px;font-size:11px;padding:3px 2px;}
+    button{padding:6px 8px;}
+    #tray{min-height:44px;padding:5px;gap:4px;}
+    .chip-panel .lbl{font-size:10px;margin-bottom:4px;}
+    .chip-holder{min-height:48px;}
+    .chip{width:44px;height:44px;font-size:18px;}
+    .zone{padding:6px;min-height:52px;}
     .zone h3{font-size:13px;margin:0 0 4px;}
     .pill{width:26px;height:26px;font-size:12px;}
   }
@@ -126,7 +145,10 @@
 </head>
 <body>
 
+<div id="reactionOverlay"></div>
+
 <header>
+  <a class="home-link" href="index.html" title="Back to home" aria-label="Back to home">🏠</a>
   <h1>🧱 Block Party — Prime or Composite?</h1>
   <div class="meta">
     <span>Number <b id="qnum">1</b>/<b id="qtotal">19</b></span>
@@ -175,6 +197,21 @@
 
 <script>
 "use strict";
+
+/* ===== REACTION OVERLAY (shared across all games) ===== */
+const HAPPY_IMAGES=['assets/reactions/happy-1.webp','assets/reactions/happy-2.jpg','assets/reactions/happy-3.jpg'];
+const SAD_IMAGES=['assets/reactions/sad-1.jpg','assets/reactions/sad-2.jpeg','assets/reactions/sad-3.jpeg'];
+function showReaction(kind){
+  const list = kind==='happy' ? HAPPY_IMAGES : SAD_IMAGES;
+  const src = list[Math.floor(Math.random()*list.length)];
+  const overlay = document.getElementById('reactionOverlay');
+  overlay.innerHTML='';
+  const img=document.createElement('img');
+  img.src=src;
+  overlay.appendChild(img);
+  requestAnimationFrame(()=>img.classList.add('show'));
+  setTimeout(()=>{ img.remove(); },800);
+}
 
 /* ---------- setup ---------- */
 function cssNum(name,fallback){
@@ -225,6 +262,27 @@ function loadQuestion(){
   blocks=[];
   for(let i=0;i<N;i++){ const b=makeBlock(); blocks.push(b); trayEl.appendChild(b.el); }
   spawnChip();
+  fitLayout();
+}
+
+/* ---- ADAPTIVE FIT: start from the breakpoint's preferred --bcell size, then
+   shrink only as far as needed for this particular N (the tray holds N unit
+   blocks) so the page never needs to scroll, while staying as large/
+   touch-friendly as possible. ---- */
+function fitLayout(){
+  document.documentElement.style.removeProperty('--bcell');   // back to the CSS breakpoint default
+  let cell=cssNum('--bcell',30);
+  document.documentElement.style.setProperty('--bcell',cell+'px');
+  CELL=cell;
+  let guard=0;
+  const fits=()=>document.documentElement.scrollHeight<=window.innerHeight &&
+                  document.documentElement.scrollWidth<=window.innerWidth;
+  while(!fits() && cell>16 && guard++<25){
+    cell-=2;
+    document.documentElement.style.setProperty('--bcell',cell+'px');
+    CELL=cell;
+  }
+  blocks.forEach(b=>{ if(b.placed) placeBlock(b,b.gx,b.gy); });
 }
 
 /* drag a unit block onto the grid, snap to nearest cell, prevent overlap */
@@ -368,7 +426,7 @@ function judgeDrop(zone){
     else{
       msg.className='msg bad';
       msg.textContent=`Not quite! ${N} CAN make a rectangle (try arranging the blocks into rows and columns) — that makes it composite.`;
-      shakeChip(); returnChipHome();
+      shakeChip(); returnChipHome(); showReaction('sad');
     }
   } else {
     if(!actualPrime){
@@ -381,13 +439,14 @@ function judgeDrop(zone){
     } else {
       msg.className='msg bad';
       msg.textContent=`Hmm, ${N} is actually prime — the only shape you can make is one straight line of blocks. Try the Prime column!`;
-      shakeChip(); returnChipHome();
+      shakeChip(); returnChipHome(); showReaction('sad');
     }
   }
 }
 
 function success(kind){
   solved=true;
+  showReaction('happy');
   const msg=document.getElementById('msg');
   msg.className='msg good';
   msg.textContent = kind==='prime'
@@ -424,15 +483,9 @@ function compositesList(){ return NUMBERS.filter(n=>!isPrime(n)); }
 
 /* ---- RESPONSIVE: --bcell changes at the portrait breakpoint (CSS), so
    re-read it and re-lay-out any placed blocks at their existing grid cells. ---- */
-function applyResponsiveSizing(){
-  const newCell=cssNum('--bcell',30);
-  if(newCell===CELL) return;
-  CELL=newCell;
-  blocks.forEach(b=>{ if(b.placed) placeBlock(b,b.gx,b.gy); });
-}
 let respTimer=null;
-window.addEventListener('resize',()=>{ clearTimeout(respTimer); respTimer=setTimeout(applyResponsiveSizing,120); });
-window.addEventListener('orientationchange',()=>setTimeout(applyResponsiveSizing,150));
+window.addEventListener('resize',()=>{ clearTimeout(respTimer); respTimer=setTimeout(fitLayout,120); });
+window.addEventListener('orientationchange',()=>setTimeout(fitLayout,150));
 
 /* ---------- boot ---------- */
 loadQuestion();
