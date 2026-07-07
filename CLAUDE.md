@@ -1,9 +1,11 @@
 # Algebra Tile Math Games — Shared Conventions
 
 This repo is a collection of single-file algebra-tile math games for South African
-Grade 11–12 students (desktop, ~1280px). Every game is built on **one shared engine**.
-When you add a new game, copy the engine verbatim and change **only** the `GAME`
-config object (and the page title/header). Do not fork the behaviour.
+Grade 11–12 students, styled with a bright, child-friendly theme (comic-style font,
+pastel palette, chunky "gummy" panels/buttons) and usable on both desktop and
+touchscreens/tablets. Every game is built on **one shared engine**. When you add a
+new game, copy the engine verbatim and change **only** the `GAME` config object
+(and the page title/header). Do not fork the behaviour.
 
 > Rule: **all tile and block behaviours must match across every game.** A student who
 > learns to play one game already knows how to play the others. No game holds the
@@ -12,8 +14,24 @@ config object (and the page title/header). Do not fork the behaviour.
 
 ## Files
 
-- `index.html` — Factoring trinomials (arrange tiles into a **rectangle**).
+- `index.html` — Landing page linking out to all games below. Not part of the shared
+  engine; just a styled grid of cards (same theme/colours as the games).
+- `factoring-trinomials.html` — Factoring trinomials (arrange tiles into a **rectangle**).
 - `completing-the-square.html` — Completing the square (arrange tiles into a **square**).
+- `prime-composite.html` — **Not part of the shared engine.** A younger-kid game (drag
+  `n` unit blocks to test if they form a non-trivial rectangle, then drag the number `n`
+  into a Prime/Composite column). Different tiles and interaction model (drag-to-column
+  instead of drag-into-grid), so it is intentionally a standalone file — don't try to
+  reconcile it with the `GAME` contract. It originated this repo's current visual theme
+  (fonts/colours/panel style) and touch-friendly Pointer Events pattern, which the two
+  algebra-tile games above now also share.
+- `halving-towers.html` — **Not part of the shared engine.** A younger-kid game: given
+  `2n` as a tower of `2n` blocks, drag blocks out of the Start well into Tower A / Tower B
+  until they're equal, then type the number sentence `n + n = 2n` (`2n` is pre-filled/given,
+  only the two `n` blanks are typed) and press Check. Runs `2n = 2,4,6,8,10,12`. Blocks are
+  dragged between three flexbox "well" zones (drop detected by point-in-rect, not a pixel
+  grid) rather than the tile-grid engine — same visual theme and Pointer Events pattern as
+  `prime-composite.html`, but its own simpler drag model suited to stacking identical blocks.
 
 ## The shared engine (identical in every game)
 
@@ -28,14 +46,18 @@ config object (and the page title/header). Do not fork the behaviour.
 - **unit-tile**: orange (`--unit`), 1×1, label `1`.
 
 ### Interactions (identical, non-negotiable)
-- **Drag** with raw mouse events (`mousedown`/`mousemove`/`mouseup`). The tile lifts out
-  (position:fixed) and follows the cursor.
+- **Drag** with Pointer Events (`pointerdown`/`pointermove`/`pointerup`/`pointercancel`),
+  which unify mouse, touch, and pen input so every game works on tablets/touchscreens as
+  well as desktop (tiles have `touch-action:none`). The tile lifts out (position:fixed)
+  and follows the pointer.
 - **Snap to grid** on drop: nearest cell to the tile's top-left, clamped inside the grid.
 - **Collision**: one tile per cell. An invalid drop (overlap, or released outside the
   workspace) returns the tile to where it came from (its previous placement, else the tray).
-- **Double-click an x-tile to rotate** it 90° (works in the tray and in place; if the
-  rotated tile no longer fits, it returns to the tray). This is the ONLY rotate gesture —
-  no single-click rotate, no buttons.
+- **Double-tap (or double-click) an x-tile to rotate** it 90° (works in the tray and in
+  place; if the rotated tile no longer fits, it returns to the tray). Detected manually by
+  timing consecutive taps/clicks on the same tile (<350ms apart) rather than relying on the
+  browser's native `dblclick`, so it behaves identically on touch and desktop. This is the
+  ONLY rotate gesture — no single-tap rotate, no buttons.
 - **Placed tiles are re-draggable** — pick any tile back up at any time before the win.
 - Validation runs **after every drop and every rotate**.
 
@@ -75,7 +97,7 @@ const GAME = {
 };
 ```
 
-- **Factoring** (`index.html`): trinomials `x² + bx + c` from factor pairs `(p,q)`, `1≤p≤q≤4`.
+- **Factoring** (`factoring-trinomials.html`): trinomials `x² + bx + c` from factor pairs `(p,q)`, `1≤p≤q≤4`.
   Win when the filled rectangle's sides give `f1=w-3, f2=h-3` with `f1+f2=b, f1·f2=c`.
   Identity `(x + f1)(x + f2)`.
 - **Completing the square** (`completing-the-square.html`): `x² + bx + ?` for even

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Block Party! Prime or Composite?</title>
+<style>
+  :root{
+    --bg:#fff6e0; --paper:#ffffff; --line:#ffe1a8;
+    --ink:#2b2350; --block:#ff9f1c; --blockline:#e07c00;
+    --prime:#4d8fff; --primedark:#2f66cc;
+    --composite:#c04dff; --compositedark:#9024d4;
+    --good:#2ec27e; --bad:#ff4d6d;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Baloo 2","Comic Sans MS","Chalkboard SE","Marker Felt",Verdana,sans-serif;
+    background:
+      radial-gradient(circle at 10% 10%, #fff0c9 0, transparent 40%),
+      radial-gradient(circle at 90% 20%, #d8f5ff 0, transparent 40%),
+      var(--bg);
+    color:var(--ink); -webkit-user-select:none; user-select:none;
+    min-height:100vh; touch-action:pan-y;
+  }
+  header{background:#fff;border-bottom:4px dashed #ffcf70;padding:16px 24px;
+         display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+  header h1{font-size:26px;margin:0;font-weight:800;color:#ff6f3c;}
+  header .meta{margin-left:auto;display:flex;gap:20px;font-size:16px;font-weight:700;}
+  header .meta span.prime b{color:var(--primedark);}
+  header .meta span.composite b{color:var(--compositedark);}
+
+  main{max-width:1200px;margin:0 auto;padding:22px 20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+  .panel{background:var(--paper);border:3px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 4px 0 var(--line);}
+
+  .left{flex:0 0 260px;display:flex;flex-direction:column;gap:16px;}
+  .left h2{margin:0 0 8px;font-size:16px;color:#a86f00;}
+  .question{text-align:center;}
+  .question .num{font-size:64px;font-weight:800;color:var(--block);text-shadow:2px 2px 0 var(--blockline);}
+  .question .ask{font-size:16px;font-weight:700;margin-top:6px;}
+  button{font:inherit;font-weight:800;padding:12px 14px;border-radius:14px;border:3px solid var(--line);
+         background:#fff;cursor:pointer;transition:.12s;box-shadow:0 3px 0 var(--line);}
+  button:hover{transform:translateY(1px);box-shadow:0 2px 0 var(--line);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--good);color:#fff;border-color:#1f9c62;box-shadow:0 3px 0 #1f9c62;}
+  button.primary:hover{background:#27b072;}
+  .msg{min-height:52px;font-size:15px;font-weight:700;text-align:center;line-height:1.35;padding:6px 4px;}
+  .msg.good{color:var(--good);}
+  .msg.info{color:#a86f00;}
+  .msg.bad{color:var(--bad);}
+
+  .center{flex:1 1 480px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0;}
+  .center h2{margin:0;font-size:16px;color:#a86f00;align-self:flex-start;}
+  .board-wrap{width:100%;max-width:calc(30px * 20);overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  #grid{position:relative;
+    width:calc(30px * 20); height:calc(30px * 8);
+    background:#fffdf5;border:3px dashed #ffcf70;border-radius:12px;
+    background-image:linear-gradient(to right,#ffedc4 1px,transparent 1px),
+                     linear-gradient(to bottom,#ffedc4 1px,transparent 1px);
+    background-size:30px 30px;}
+  #tray{width:100%;min-height:70px;background:#fff9ec;border:3px solid var(--line);border-radius:14px;
+        padding:10px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;}
+  .tray-label{font-size:13px;color:#a86f00;font-weight:700;align-self:flex-start;}
+  .block{position:relative;width:28px;height:28px;border-radius:7px;background:var(--block);
+        border:2px solid var(--blockline);box-shadow:0 2px 0 var(--blockline);cursor:grab;touch-action:none;}
+  .block.dragging{cursor:grabbing;box-shadow:0 6px 12px rgba(0,0,0,.3);z-index:1000;}
+  .grid-actions{display:flex;gap:10px;}
+
+  .right{flex:0 0 300px;display:flex;flex-direction:column;gap:16px;}
+  .chip-panel{text-align:center;}
+  .chip-panel .lbl{font-size:13px;color:#a86f00;font-weight:700;margin-bottom:10px;}
+  .chip-holder{display:flex;justify-content:center;min-height:80px;align-items:center;}
+  .chip{width:74px;height:74px;border-radius:50%;background:linear-gradient(160deg,#ffd166,#ff9f1c);
+       border:4px solid #ffb703;display:flex;align-items:center;justify-content:center;
+       font-size:32px;font-weight:800;color:#5c3b00;cursor:grab;box-shadow:0 4px 0 #e07c00;touch-action:none;}
+  .chip.dragging{cursor:grabbing;position:fixed;z-index:2000;box-shadow:0 8px 20px rgba(0,0,0,.35);}
+  .chip.shake{animation:shake .5s ease;}
+  @keyframes shake{10%,90%{transform:translateX(-3px)}20%,80%{transform:translateX(5px)}
+    30%,50%,70%{transform:translateX(-9px)}40%,60%{transform:translateX(9px)}}
+  @keyframes pop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+
+  .zone{border-radius:16px;padding:14px;min-height:110px;border:4px solid;}
+  .zone.prime{background:#eaf2ff;border-color:var(--prime);}
+  .zone.composite{background:#f6eaff;border-color:var(--composite);}
+  .zone h3{margin:0 0 8px;font-size:17px;}
+  .zone.prime h3{color:var(--primedark);}
+  .zone.composite h3{color:var(--compositedark);}
+  .zone.dragover{filter:brightness(1.08);transform:scale(1.02);}
+  .zone-items{display:flex;flex-wrap:wrap;gap:6px;}
+  .pill{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+       font-weight:800;font-size:15px;color:#fff;animation:pop .4s ease;}
+  .zone.prime .pill{background:var(--prime);}
+  .zone.composite .pill{background:var(--composite);}
+
+  .endcard{flex:1 1 100%;text-align:center;padding:34px;}
+  .endcard h2{font-size:28px;color:#ff6f3c;}
+  .endcard .cols{display:flex;justify-content:center;gap:40px;margin:18px 0;flex-wrap:wrap;}
+  .endcard .col h3{margin-bottom:8px;}
+  .endcard .col .list{font-size:20px;font-weight:800;line-height:1.8;}
+
+  @media (max-width:900px){
+    main{flex-direction:column;align-items:stretch;}
+    .left,.center,.right{flex:1 1 auto;width:100%;min-width:0;}
+    .right{flex-direction:row;flex-wrap:wrap;}
+    .right .panel,.right .zone{flex:1 1 260px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧱 Block Party — Prime or Composite?</h1>
+  <div class="meta">
+    <span>Number <b id="qnum">1</b>/<b id="qtotal">19</b></span>
+    <span class="prime">⭐ Prime <b id="primeCount">0</b></span>
+    <span class="composite">🧩 Composite <b id="compositeCount">0</b></span>
+  </div>
+</header>
+
+<main>
+  <section class="left">
+    <div class="panel question">
+      <h2>Your number</h2>
+      <div class="num" id="bigNum">2</div>
+      <div class="ask" id="ask">Can you build a rectangle with 2 blocks?</div>
+    </div>
+    <div class="panel">
+      <div class="grid-actions">
+        <button id="resetBtn">↺ Reset blocks</button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+  </section>
+
+  <section class="center panel">
+    <h2>Drag blocks here and line them up!</h2>
+    <div class="board-wrap"><div id="grid"></div></div>
+    <div class="tray-label">Your blocks</div>
+    <div id="tray"></div>
+  </section>
+
+  <section class="right">
+    <div class="panel chip-panel">
+      <div class="lbl">Drag your number into a column! 👇</div>
+      <div class="chip-holder" id="chipHolder"></div>
+    </div>
+    <div class="zone prime" id="zonePrime" data-zone="prime">
+      <h3>⭐ Prime numbers</h3>
+      <div class="zone-items" id="primeItems"></div>
+    </div>
+    <div class="zone composite" id="zoneComposite" data-zone="composite">
+      <h3>🧩 Composite numbers</h3>
+      <div class="zone-items" id="compositeItems"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+/* ---------- setup ---------- */
+const CELL=30, GRID_W=20, GRID_H=8;
+const gridEl=document.getElementById('grid');
+const trayEl=document.getElementById('tray');
+const chipHolder=document.getElementById('chipHolder');
+const zonePrime=document.getElementById('zonePrime');
+const zoneComposite=document.getElementById('zoneComposite');
+const primeItems=document.getElementById('primeItems');
+const compositeItems=document.getElementById('compositeItems');
+
+const NUMBERS=[]; for(let n=2;n<=20;n++) NUMBERS.push(n);
+document.getElementById('qtotal').textContent=NUMBERS.length;
+
+let idx=0, N=0, blocks=[], solved=false, primeScore=0, compositeScore=0, chip=null;
+
+function isPrime(n){
+  if(n<2) return false;
+  for(let i=2;i*i<=n;i++) if(n%i===0) return false;
+  return true;
+}
+
+/* ---------- blocks ---------- */
+function makeBlock(){
+  const b={id:blocks.length,placed:false,gx:0,gy:0};
+  const el=document.createElement('div');
+  el.className='block';
+  b.el=el;
+  el.addEventListener('pointerdown',e=>onBlockDown(e,b));
+  return b;
+}
+
+function loadQuestion(){
+  solved=false;
+  N=NUMBERS[idx];
+  document.getElementById('qnum').textContent=idx+1;
+  document.getElementById('bigNum').textContent=N;
+  document.getElementById('ask').textContent=`Can you build a rectangle with ${N} blocks?`;
+  document.getElementById('msg').className='msg';
+  document.getElementById('msg').textContent='';
+  gridEl.querySelectorAll('.block').forEach(n=>n.remove());
+  trayEl.innerHTML='';
+  blocks=[];
+  for(let i=0;i<N;i++){ const b=makeBlock(); blocks.push(b); trayEl.appendChild(b.el); }
+  spawnChip();
+}
+
+/* drag a unit block onto the grid, snap to nearest cell, prevent overlap */
+let dragBlock=null, gbx=0, gby=0, bStartX=0, bStartY=0, bLifted=false;
+function onBlockDown(e,b){
+  if(solved) return;
+  e.preventDefault();
+  dragBlock=b; bLifted=false; bStartX=e.clientX; bStartY=e.clientY;
+  const r=b.el.getBoundingClientRect();
+  gbx=e.clientX-r.left; gby=e.clientY-r.top;
+  b.prevPlaced=b.placed; b.prevX=b.gx; b.prevY=b.gy;
+}
+function liftBlock(){
+  bLifted=true; dragBlock.placed=false;
+  document.body.appendChild(dragBlock.el);
+  dragBlock.el.classList.add('dragging');
+  dragBlock.el.style.position='fixed';
+}
+document.addEventListener('pointermove',e=>{
+  if(dragBlock){
+    if(!bLifted){ if(Math.abs(e.clientX-bStartX)>4||Math.abs(e.clientY-bStartY)>4) liftBlock(); else return; }
+    dragBlock.el.style.left=(e.clientX-gbx)+'px';
+    dragBlock.el.style.top=(e.clientY-gby)+'px';
+  }
+  if(chip && chip.lifted){
+    chip.el.style.left=(e.clientX-chip.gx)+'px';
+    chip.el.style.top=(e.clientY-chip.gy)+'px';
+  }
+});
+function endBlockDrag(){
+  const b=dragBlock; dragBlock=null;
+  if(bLifted){
+    bLifted=false; b.el.classList.remove('dragging');
+    const gr=gridEl.getBoundingClientRect(), r=b.el.getBoundingClientRect();
+    const cx=r.left+r.width/2, cy=r.top+r.height/2;
+    const inside=cx>gr.left&&cx<gr.right&&cy>gr.top&&cy<gr.bottom;
+    if(inside){
+      let gx=Math.round((r.left-gr.left)/CELL), gy=Math.round((r.top-gr.top)/CELL);
+      gx=Math.max(0,Math.min(GRID_W-1,gx)); gy=Math.max(0,Math.min(GRID_H-1,gy));
+      if(canPlaceBlock(b,gx,gy)) placeBlock(b,gx,gy); else restoreBlock(b);
+    } else returnBlockToTray(b);
+  }
+}
+document.addEventListener('pointerup',e=>{
+  if(dragBlock) endBlockDrag();
+  if(chip && chip.lifted) onChipDrop(e);
+});
+document.addEventListener('pointercancel',e=>{
+  if(dragBlock) endBlockDrag();
+  if(chip && chip.lifted) onChipDrop(e);
+});
+function canPlaceBlock(b,gx,gy){
+  if(gx<0||gy<0||gx>=GRID_W||gy>=GRID_H) return false;
+  for(const o of blocks){ if(o===b||!o.placed) continue; if(o.gx===gx&&o.gy===gy) return false; }
+  return true;
+}
+function placeBlock(b,gx,gy){
+  b.placed=true; b.gx=gx; b.gy=gy;
+  gridEl.appendChild(b.el);
+  b.el.style.position='absolute'; b.el.style.left=(gx*CELL+1)+'px'; b.el.style.top=(gy*CELL+1)+'px';
+}
+function returnBlockToTray(b){
+  b.placed=false; b.el.style.position='static'; b.el.style.left=''; b.el.style.top='';
+  trayEl.appendChild(b.el);
+}
+function restoreBlock(b){
+  if(b.prevPlaced && canPlaceBlock(b,b.prevX,b.prevY)) placeBlock(b,b.prevX,b.prevY);
+  else returnBlockToTray(b);
+}
+document.getElementById('resetBtn').addEventListener('click',()=>{ if(!solved) blocks.forEach(returnBlockToTray); });
+
+/* does the current arrangement form one solid rectangle (all N blocks, no gaps)? */
+function currentRectangle(){
+  if(blocks.some(b=>!b.placed)) return null;
+  let minX=GRID_W,minY=GRID_H,maxX=-1,maxY=-1;
+  const occ=new Set();
+  for(const b of blocks){ occ.add(b.gx+','+b.gy);
+    if(b.gx<minX)minX=b.gx; if(b.gx>maxX)maxX=b.gx; if(b.gy<minY)minY=b.gy; if(b.gy>maxY)maxY=b.gy; }
+  const w=maxX-minX+1, h=maxY-minY+1;
+  if(w*h!==blocks.length) return null;
+  for(let y=minY;y<=maxY;y++) for(let x=minX;x<=maxX;x++) if(!occ.has(x+','+y)) return null;
+  return {w,h};
+}
+
+/* ---------- number chip ---------- */
+function spawnChip(){
+  chipHolder.innerHTML='';
+  const el=document.createElement('div');
+  el.className='chip';
+  el.textContent=N;
+  chip={el,lifted:false};
+  el.addEventListener('pointerdown',onChipDown);
+  chipHolder.appendChild(el);
+}
+let cStartX=0,cStartY=0;
+function onChipDown(e){
+  if(solved) return;
+  e.preventDefault();
+  cStartX=e.clientX; cStartY=e.clientY;
+  const r=chip.el.getBoundingClientRect();
+  chip.gx=e.clientX-r.left; chip.gy=e.clientY-r.top;
+  chip.homeLeft=r.left; chip.homeTop=r.top;
+  chip.pendingLift=true;
+}
+document.addEventListener('pointermove',e=>{
+  if(chip && chip.pendingLift && !chip.lifted){
+    if(Math.abs(e.clientX-cStartX)>4||Math.abs(e.clientY-cStartY)>4){
+      chip.lifted=true;
+      document.body.appendChild(chip.el);
+      chip.el.classList.add('dragging');
+      chip.el.style.position='fixed';
+      chip.el.style.left=chip.homeLeft+'px'; chip.el.style.top=chip.homeTop+'px';
+    }
+  }
+});
+function onChipDrop(){
+  chip.pendingLift=false; chip.lifted=false;
+  chip.el.classList.remove('dragging');
+  const r=chip.el.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  const pr=zonePrime.getBoundingClientRect(), cr=zoneComposite.getBoundingClientRect();
+  let zone=null;
+  if(cx>pr.left&&cx<pr.right&&cy>pr.top&&cy<pr.bottom) zone='prime';
+  else if(cx>cr.left&&cx<cr.right&&cy>cr.top&&cy<cr.bottom) zone='composite';
+  if(zone) judgeDrop(zone); else returnChipHome();
+}
+function returnChipHome(){
+  chip.el.style.position='static'; chip.el.style.left=''; chip.el.style.top='';
+  chipHolder.appendChild(chip.el);
+}
+function shakeChip(){
+  chip.el.classList.remove('shake'); void chip.el.offsetWidth; chip.el.classList.add('shake');
+}
+
+function judgeDrop(zone){
+  const msg=document.getElementById('msg');
+  const rect=currentRectangle();
+  const actualPrime=isPrime(N);
+  if(zone==='prime'){
+    if(actualPrime){ success('prime'); }
+    else{
+      msg.className='msg bad';
+      msg.textContent=`Not quite! ${N} CAN make a rectangle (try arranging the blocks into rows and columns) — that makes it composite.`;
+      shakeChip(); returnChipHome();
+    }
+  } else {
+    if(!actualPrime){
+      if(rect && rect.w>1 && rect.h>1){ success('composite'); }
+      else{
+        msg.className='msg info';
+        msg.textContent=`You're right that ${N} is composite! Now prove it — arrange all the blocks into neat rows and columns, then drop the number again.`;
+        returnChipHome();
+      }
+    } else {
+      msg.className='msg bad';
+      msg.textContent=`Hmm, ${N} is actually prime — the only shape you can make is one straight line of blocks. Try the Prime column!`;
+      shakeChip(); returnChipHome();
+    }
+  }
+}
+
+function success(kind){
+  solved=true;
+  const msg=document.getElementById('msg');
+  msg.className='msg good';
+  msg.textContent = kind==='prime'
+    ? `🎉 Well done! ${N} is prime — only a straight line of blocks works.`
+    : `🎉 Well done! ${N} is composite — you built a real rectangle.`;
+  const pill=document.createElement('div');
+  pill.className='pill'; pill.textContent=N;
+  chip.el.remove();
+  chipHolder.innerHTML='';
+  if(kind==='prime'){ primeItems.appendChild(pill); primeScore++; document.getElementById('primeCount').textContent=primeScore; }
+  else{ compositeItems.appendChild(pill); compositeScore++; document.getElementById('compositeCount').textContent=compositeScore; }
+  setTimeout(()=>{ idx++; if(idx>=NUMBERS.length) showEndCard(); else loadQuestion(); }, 1100);
+}
+
+function showEndCard(){
+  document.querySelector('main').innerHTML=`
+    <div class="panel endcard">
+      <h2>🏆 You sorted every number from 2 to 20!</h2>
+      <div class="cols">
+        <div class="col">
+          <h3>⭐ Prime</h3>
+          <div class="list" style="color:var(--primedark)">${primesList().join('&nbsp;&nbsp;')}</div>
+        </div>
+        <div class="col">
+          <h3>🧩 Composite</h3>
+          <div class="list" style="color:var(--compositedark)">${compositesList().join('&nbsp;&nbsp;')}</div>
+        </div>
+      </div>
+      <button class="primary" onclick="location.reload()">Play again</button>
+    </div>`;
+}
+function primesList(){ return NUMBERS.filter(isPrime); }
+function compositesList(){ return NUMBERS.filter(n=>!isPrime(n)); }
+
+/* ---------- boot ---------- */
+loadQuestion();
+</script>
+</body>
+</html>

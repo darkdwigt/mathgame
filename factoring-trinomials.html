@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Algebra Tiles — Completing the Square</title>
+<title>Algebra Tiles — Factoring Trinomials</title>
 <style>
   /* ===== SHARED THEME (identical across all algebra-tile games) ===== */
   :root{
@@ -99,7 +99,7 @@
 <body>
 
 <header>
-  <h1>🟦 Algebra Tiles — Completing the Square</h1>
+  <h1>🔷 Algebra Tiles — Factoring Trinomials</h1>
   <div class="meta">
     <span>Question <b id="qnum">1</b>/10</span>
     <span>Score <b id="score">0</b></span>
@@ -109,7 +109,7 @@
 <main>
   <section class="left">
     <div class="panel problem">
-      <div class="label" id="prompt">Complete the square</div>
+      <div class="label" id="prompt">Factor this trinomial</div>
       <div class="expr" id="expr"></div>
       <div class="result" id="result"></div>
     </div>
@@ -155,25 +155,23 @@
    (See CLAUDE.md for the shared contract.)
    ========================================================================= */
 const GAME = {
-  goal: "Arrange every tile into one solid square — no gaps, no overlaps.",
+  goal: "Arrange every tile into one solid rectangle — no gaps, no overlaps.",
 
-  // even b only (b/2 is whole): fixed progression 2,4,6,8,10 then 5 random.
+  // 10 distinct monic trinomials from factor pairs 1<=p<=q<=4, shuffled.
   buildSession(){
-    const set=[2,4,6,8,10], qs=set.slice();
-    for(let i=0;i<5;i++) qs.push(set[Math.floor(Math.random()*set.length)]);
-    return qs;  // each Q is just the number b
+    const qs=[];
+    for(let p=1;p<=4;p++) for(let q=p;q<=4;q++) qs.push({p,q,b:p+q,c:p*q});
+    for(let i=qs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[qs[i],qs[j]]=[qs[j],qs[i]];}
+    return qs;
   },
-  exprHTML(b){ return `x<sup>2</sup> + ${b}x + ?`; },
-  // exact supply: 1 x², b x-tiles, (b/2)² unit tiles  -> completes to (x + b/2)²
-  supply(b){ return [{type:'x2',n:1},{type:'x',n:b},{type:'unit',n:(b/2)*(b/2)}]; },
+  exprHTML(Q){ return `x<sup>2</sup> + ${Q.b}x + ${Q.c}`; },
+  supply(Q){ return [{type:'x2',n:1},{type:'x',n:Q.b},{type:'unit',n:Q.c}]; },
 
-  // win only when the filled shape is a SQUARE whose side reads x + b/2
-  check(b,w,h){
-    if(w!==h) return null;                 // must be a square, not just any rectangle
-    const k=w-X;                           // side length L cells = "x + (L-X)"
-    if(k>=1 && k===b/2){
-      const lab=`x + ${k}`;
-      return {identity:`x² + ${b}x + ${k*k} = (x + ${k})²`, topLabel:lab, leftLabel:lab, cheer:'🎉 Perfect square!'};
+  // win when the filled rectangle's sides give the correct factors
+  check(Q,w,h){
+    const f1=w-X, f2=h-X;            // a side of length L cells = "x + (L-X)"
+    if(f1>=1 && f2>=1 && f1+f2===Q.b && f1*f2===Q.c){
+      return {identity:`(x + ${f1})(x + ${f2})`, topLabel:`x + ${f1}`, leftLabel:`x + ${f2}`, cheer:'🎉 Correct!'};
     }
     return null;
   }

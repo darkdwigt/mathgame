@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halving Towers</title>
+<style>
+  :root{
+    --bg:#fff6e0; --paper:#ffffff; --line:#ffe1a8;
+    --ink:#2b2350; --block:#ff9f1c; --blockline:#e07c00;
+    --a:#4d8fff; --adark:#2f66cc;
+    --b:#c04dff; --bdark:#9024d4;
+    --good:#2ec27e; --bad:#ff4d6d;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Baloo 2","Comic Sans MS","Chalkboard SE","Marker Felt",Verdana,sans-serif;
+    background:
+      radial-gradient(circle at 10% 10%, #fff0c9 0, transparent 40%),
+      radial-gradient(circle at 90% 20%, #d8f5ff 0, transparent 40%),
+      var(--bg);
+    color:var(--ink); -webkit-user-select:none; user-select:none;
+    min-height:100vh; touch-action:pan-y;
+  }
+  header{background:#fff;border-bottom:4px dashed #ffcf70;padding:16px 24px;
+         display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+  header h1{font-size:24px;margin:0;font-weight:800;color:#ff6f3c;}
+  header .meta{margin-left:auto;display:flex;gap:20px;font-size:16px;font-weight:700;}
+  header .meta b{color:var(--adark);}
+
+  main{max-width:1200px;margin:0 auto;padding:22px 20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+  .panel{background:var(--paper);border:3px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 4px 0 var(--line);}
+
+  .left{flex:0 0 260px;display:flex;flex-direction:column;gap:16px;}
+  .question{text-align:center;}
+  .question .num{font-size:60px;font-weight:800;color:var(--block);text-shadow:2px 2px 0 var(--blockline);}
+  .question .ask{font-size:15px;font-weight:700;margin-top:6px;}
+  button{font:inherit;font-weight:800;padding:12px 14px;border-radius:14px;border:3px solid var(--line);
+         background:#fff;cursor:pointer;transition:.12s;box-shadow:0 3px 0 var(--line);}
+  button:hover{transform:translateY(1px);box-shadow:0 2px 0 var(--line);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--good);color:#fff;border-color:#1f9c62;box-shadow:0 3px 0 #1f9c62;}
+  button.primary:hover{background:#27b072;}
+  .msg{min-height:52px;font-size:15px;font-weight:700;text-align:center;line-height:1.35;padding:6px 4px;}
+  .msg.good{color:var(--good);}
+  .msg.info{color:#a86f00;}
+  .msg.bad{color:var(--bad);}
+
+  .center{flex:1 1 520px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0;}
+  .towers{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;width:100%;}
+  .tower{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .tower h3{margin:0;font-size:15px;color:#5b4a8a;font-weight:800;}
+  .tower .count{font-size:13px;color:#8a7bb8;font-weight:700;}
+  .well{width:84px;height:392px;border:3px dashed #ffcf70;border-radius:12px;background:#fffdf5;
+       display:flex;flex-direction:column-reverse;align-items:center;gap:4px;padding:6px;}
+  .well.start{border-color:var(--blockline);}
+  .well.a{border-color:var(--a);background:#eaf2ff;}
+  .well.b{border-color:var(--b);background:#f6eaff;}
+  .well.dragover{filter:brightness(1.08);}
+  .block{flex:0 0 auto;width:56px;height:26px;border-radius:6px;background:var(--block);
+        border:2px solid var(--blockline);box-shadow:0 2px 0 var(--blockline);cursor:grab;touch-action:none;}
+  .block.dragging{cursor:grabbing;box-shadow:0 6px 12px rgba(0,0,0,.3);z-index:1000;}
+
+  .eq-panel{text-align:center;}
+  .eq-panel h2{margin:0 0 10px;font-size:16px;color:#a86f00;}
+  .eq-row{display:flex;align-items:center;justify-content:center;gap:10px;font-size:22px;font-weight:800;flex-wrap:wrap;}
+  .eq-row input{width:56px;height:56px;font:inherit;font-size:26px;font-weight:800;text-align:center;
+       border-radius:14px;border:3px solid var(--line);background:#fff;color:var(--ink);}
+  .eq-row input:disabled{background:#f4f4f4;color:#bbb;}
+  .eq-row input.shake{animation:shake .5s ease;}
+  @keyframes shake{10%,90%{transform:translateX(-3px)}20%,80%{transform:translateX(5px)}
+    30%,50%,70%{transform:translateX(-9px)}40%,60%{transform:translateX(9px)}}
+  .eq-row .given{width:56px;height:56px;display:flex;align-items:center;justify-content:center;
+       border-radius:50%;background:linear-gradient(160deg,#ffd166,#ff9f1c);border:4px solid #ffb703;
+       color:#5c3b00;box-shadow:0 4px 0 #e07c00;}
+  .checkBtn{margin-top:14px;}
+
+  .endcard{flex:1 1 100%;text-align:center;padding:34px;}
+  .endcard h2{font-size:28px;color:#ff6f3c;}
+  .endcard .list{font-size:20px;font-weight:800;line-height:2;color:var(--adark);}
+
+  @media (max-width:900px){
+    main{flex-direction:column;align-items:stretch;}
+    .left,.center,.right{flex:1 1 auto;width:100%;min-width:0;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧱➗ Halving Towers</h1>
+  <div class="meta">
+    <span>Number <b id="qnum">1</b>/<b id="qtotal">6</b></span>
+    <span>⭐ Stars <b id="score">0</b></span>
+  </div>
+</header>
+
+<main>
+  <section class="left">
+    <div class="panel question">
+      <h2 style="margin:0 0 4px;font-size:15px;color:#a86f00;">Your number</h2>
+      <div class="num" id="bigNum">2</div>
+      <div class="ask" id="ask">Split the tower into two equal towers!</div>
+    </div>
+    <div class="panel">
+      <button id="resetBtn" style="width:100%;">↺ Reset tower</button>
+    </div>
+    <div class="panel msg" id="msg"></div>
+  </section>
+
+  <section class="center panel">
+    <div class="towers">
+      <div class="tower">
+        <h3>🏗️ Start</h3>
+        <div class="count"><span id="countStart">0</span> blocks</div>
+        <div class="well start" id="wellStart"></div>
+      </div>
+      <div class="tower">
+        <h3 style="color:var(--adark)">Tower A</h3>
+        <div class="count"><span id="countA">0</span> blocks</div>
+        <div class="well a" id="wellA"></div>
+      </div>
+      <div class="tower">
+        <h3 style="color:var(--bdark)">Tower B</h3>
+        <div class="count"><span id="countB">0</span> blocks</div>
+        <div class="well b" id="wellB"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="right panel eq-panel">
+    <h2>Now write the number sentence</h2>
+    <div class="eq-row">
+      <input type="number" inputmode="numeric" id="inA" disabled>
+      <span>+</span>
+      <input type="number" inputmode="numeric" id="inB" disabled>
+      <span>=</span>
+      <div class="given" id="givenTotal">2</div>
+    </div>
+    <button class="primary checkBtn" id="checkBtn" disabled>Check ✔</button>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+const SEQUENCE=[2,4,6,8,10,12];
+document.getElementById('qtotal').textContent=SEQUENCE.length;
+
+const wellStart=document.getElementById('wellStart');
+const wellA=document.getElementById('wellA');
+const wellB=document.getElementById('wellB');
+const wells=[{el:wellStart,name:'start'},{el:wellA,name:'a'},{el:wellB,name:'b'}];
+
+let idx=0, TWO_N=0, N=0, score=0, solved=false, sentences=[];
+
+function loadQuestion(){
+  solved=false;
+  TWO_N=SEQUENCE[idx]; N=TWO_N/2;
+  document.getElementById('qnum').textContent=idx+1;
+  document.getElementById('bigNum').textContent=TWO_N;
+  document.getElementById('ask').textContent=`Split the tower of ${TWO_N} into two equal towers!`;
+  document.getElementById('givenTotal').textContent=TWO_N;
+  document.getElementById('msg').className='msg';
+  document.getElementById('msg').textContent='';
+  wellStart.innerHTML=''; wellA.innerHTML=''; wellB.innerHTML='';
+  for(let i=0;i<TWO_N;i++){
+    const el=document.createElement('div');
+    el.className='block';
+    el.addEventListener('pointerdown',onBlockDown);
+    wellStart.appendChild(el);
+  }
+  const inA=document.getElementById('inA'), inB=document.getElementById('inB'), chk=document.getElementById('checkBtn');
+  inA.value=''; inB.value=''; inA.disabled=true; inB.disabled=true; chk.disabled=true;
+  updateCounts();
+}
+
+function updateCounts(){
+  document.getElementById('countStart').textContent=wellStart.children.length;
+  document.getElementById('countA').textContent=wellA.children.length;
+  document.getElementById('countB').textContent=wellB.children.length;
+  evaluateState();
+}
+
+function evaluateState(){
+  if(solved) return;
+  const msg=document.getElementById('msg');
+  const inA=document.getElementById('inA'), inB=document.getElementById('inB'), chk=document.getElementById('checkBtn');
+  const cStart=wellStart.children.length, cA=wellA.children.length, cB=wellB.children.length;
+  const ready = cStart===0 && cA===cB && cA>0;
+  inA.disabled=!ready; inB.disabled=!ready; chk.disabled=!ready;
+  if(ready){
+    msg.className='msg info';
+    msg.textContent='Great, two equal towers! Now fill in the number sentence.';
+  } else if(cStart>0){
+    msg.className='msg info';
+    msg.textContent='Drag every block out of the Start tower into Tower A or Tower B.';
+  } else {
+    msg.className='msg info';
+    msg.textContent="So close! Make Tower A and Tower B the same height.";
+  }
+}
+
+/* ---- drag a block between the three wells (Pointer Events: mouse + touch) ---- */
+let drag=null, startParent=null, grabX=0, grabY=0, downX=0, downY=0, lifted=false;
+function onBlockDown(e){
+  if(solved) return;
+  e.preventDefault();
+  drag=e.currentTarget; lifted=false; downX=e.clientX; downY=e.clientY;
+  startParent=drag.parentElement;
+  const r=drag.getBoundingClientRect();
+  grabX=e.clientX-r.left; grabY=e.clientY-r.top;
+}
+function liftBlock(){
+  lifted=true;
+  document.body.appendChild(drag);
+  drag.classList.add('dragging');
+  drag.style.position='fixed'; drag.style.width='56px'; drag.style.height='26px';
+}
+document.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  if(!lifted){ if(Math.abs(e.clientX-downX)>4||Math.abs(e.clientY-downY)>4) liftBlock(); else return; }
+  drag.style.left=(e.clientX-grabX)+'px';
+  drag.style.top=(e.clientY-grabY)+'px';
+});
+function endDrag(){
+  if(!drag) return;
+  const b=drag; drag=null;
+  wells.forEach(w=>w.el.classList.remove('dragover'));
+  if(!lifted) return;                                // a tap, not a drag
+  lifted=false; b.classList.remove('dragging');
+  // hit-test BEFORE clearing the fixed positioning, or the coordinates go stale
+  const r=b.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  b.style.position=''; b.style.width=''; b.style.height='';
+  let target=null;
+  for(const w of wells){
+    const wr=w.el.getBoundingClientRect();
+    if(cx>wr.left&&cx<wr.right&&cy>wr.top&&cy<wr.bottom){ target=w.el; break; }
+  }
+  (target||startParent).appendChild(b);
+  updateCounts();
+}
+document.addEventListener('pointerup',endDrag);
+document.addEventListener('pointercancel',endDrag);
+document.addEventListener('pointermove',e=>{
+  if(!drag||!lifted) return;
+  const r=drag.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  wells.forEach(w=>{
+    const wr=w.el.getBoundingClientRect();
+    w.el.classList.toggle('dragover', cx>wr.left&&cx<wr.right&&cy>wr.top&&cy<wr.bottom);
+  });
+});
+
+/* ---- reset ---- */
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  if(solved) return;
+  Array.from(wellA.children).forEach(b=>wellStart.appendChild(b));
+  Array.from(wellB.children).forEach(b=>wellStart.appendChild(b));
+  updateCounts();
+});
+
+/* ---- check the number sentence ---- */
+document.getElementById('checkBtn').addEventListener('click',()=>{
+  if(solved) return;
+  const inA=document.getElementById('inA'), inB=document.getElementById('inB'), msg=document.getElementById('msg');
+  const a=parseInt(inA.value,10), b=parseInt(inB.value,10);
+  const cA=wellA.children.length;
+  if(a===cA && b===cA && a+b===TWO_N){
+    solved=true; score++;
+    document.getElementById('score').textContent=score;
+    msg.className='msg good';
+    msg.textContent=`🎉 Well done! ${N} + ${N} = ${TWO_N}`;
+    sentences.push(`${N} + ${N} = ${TWO_N}`);
+    inA.disabled=true; inB.disabled=true; document.getElementById('checkBtn').disabled=true;
+    setTimeout(()=>{ idx++; if(idx>=SEQUENCE.length) showEndCard(); else loadQuestion(); }, 1300);
+  } else {
+    msg.className='msg bad';
+    msg.textContent='Not quite — count the blocks in each tower and try again.';
+    [inA,inB].forEach(inp=>{ inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); });
+  }
+});
+
+function showEndCard(){
+  document.querySelector('main').innerHTML=`
+    <div class="panel endcard">
+      <h2>🏆 You halved every tower up to 12!</h2>
+      <div class="list">${sentences.join('<br>')}</div>
+      <button class="primary" onclick="location.reload()" style="margin-top:20px;">Play again</button>
+    </div>`;
+}
+
+/* ---- boot ---- */
+loadQuestion();
+</script>
+</body>
+</html>
