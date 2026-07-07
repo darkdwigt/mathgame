@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🟦</text></svg>">
 <title>Algebra Tiles — Completing the Square</title>
 <style>
   /* ===== SHARED THEME (identical across all algebra-tile games) ===== */
@@ -128,6 +129,11 @@
     .right .hint{font-size:10px;margin:0 0 4px;}
     .hint-msg{font-size:11px;min-height:13px;}
   }
+
+  a:focus-visible,button:focus-visible{outline:3px solid #4d8fff;outline-offset:2px;border-radius:8px;}
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;}
+  }
 </style>
 </head>
 <body>
@@ -148,7 +154,7 @@
     <div class="panel problem">
       <div class="label" id="prompt">Complete the square</div>
       <div class="expr" id="expr"></div>
-      <div class="result" id="result"></div>
+      <div class="result" id="result" aria-live="polite"></div>
     </div>
     <div class="panel controls">
       <button class="primary" id="nextBtn" disabled>Next →</button>
@@ -219,6 +225,7 @@ const GAME = {
 /* ===== REACTION OVERLAY (shared across all games) ===== */
 const HAPPY_IMAGES=['assets/reactions/happy-1.webp','assets/reactions/happy-2.jpg','assets/reactions/happy-3.jpg'];
 const SAD_IMAGES=['assets/reactions/sad-1.jpg','assets/reactions/sad-2.jpeg','assets/reactions/sad-3.jpeg'];
+[...HAPPY_IMAGES,...SAD_IMAGES].forEach(src=>{ const img=new Image(); img.src=src; });  // preload so the first reaction pops instantly
 function showReaction(kind){
   const list = kind==='happy' ? HAPPY_IMAGES : SAD_IMAGES;
   const src = list[Math.floor(Math.random()*list.length)];
@@ -280,19 +287,24 @@ function loadQuestion(){
 }
 
 /* ---- ADAPTIVE FIT: start from the breakpoint's preferred --cell size, then
-   shrink only as far as needed for this particular question's tile count
-   (some questions need far more tiles than others) so the page never
-   needs to scroll, while staying as large/touch-friendly as possible. ---- */
+   GROW it to use up spare space on large screens (desktop/tablet), or SHRINK
+   it as far as needed for this particular question's tile count (some
+   questions need far more tiles than others), so the page never needs to
+   scroll while staying as large/touch-friendly as possible either way. ---- */
+const CELL_MAX=76;
 function fitLayout(){
+  document.documentElement.style.removeProperty('--cell');   // drop any prior grow/shrink override
   CELL=cssNum('--cell',44); STAGE_PAD=cssNum('--stage-pad',34);
   tiles.forEach(sizeTile);
   let guard=0;
   const fits=()=>document.documentElement.scrollHeight<=window.innerHeight &&
                   document.documentElement.scrollWidth<=window.innerWidth;
-  while(!fits() && CELL>20 && guard++<25){
-    CELL-=2;
-    tiles.forEach(t=>{ sizeTile(t); if(t.placed) placeTile(t,t.gx,t.gy); });
-  }
+  const resize=()=>{ document.documentElement.style.setProperty('--cell',CELL+'px');
+    tiles.forEach(t=>{ sizeTile(t); if(t.placed) placeTile(t,t.gx,t.gy); }); };
+  while(fits() && CELL<CELL_MAX && guard++<25){ CELL+=2; resize(); }
+  if(!fits() && CELL>20){ CELL-=2; resize(); }
+  guard=0;
+  while(!fits() && CELL>20 && guard++<25){ CELL-=2; resize(); }
 }
 
 /* ---- DRAG & DROP (Pointer Events: mouse + touch + pen) ----

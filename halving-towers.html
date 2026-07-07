@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏗️</text></svg>">
 <title>Halving Towers</title>
 <style>
   :root{
@@ -126,6 +127,22 @@
     .well{height:290px;gap:2px;}
     .block{height:22px;}
   }
+  /* GROW on spacious desktop/tablet screens so the game isn't stranded in a
+     corner of the viewport (same intent as the algebra-tile games' adaptive
+     --cell growth, done here with a plain breakpoint since these wells and
+     blocks are fixed-px, not driven by a JS-computed cell size). */
+  @media (orientation:landscape) and (min-width:1300px) and (min-height:820px){
+    main{max-width:1400px;gap:28px;}
+    .well{width:100px;height:460px;}
+    .block{width:68px;height:30px;}
+    .eq-row input,.eq-row .given{width:68px;height:68px;font-size:30px;}
+    .question .num{font-size:72px;}
+  }
+
+  a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #4d8fff;outline-offset:2px;border-radius:8px;}
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;}
+  }
 </style>
 </head>
 <body>
@@ -151,7 +168,7 @@
     <div class="panel">
       <button id="resetBtn" style="width:100%;">↺ Reset tower</button>
     </div>
-    <div class="panel msg" id="msg"></div>
+    <div class="panel msg" id="msg" aria-live="polite"></div>
   </section>
 
   <section class="center panel">
@@ -177,9 +194,9 @@
   <section class="right panel eq-panel">
     <h2>Now write the number sentence</h2>
     <div class="eq-row">
-      <input type="number" inputmode="numeric" id="inA" disabled>
+      <input type="number" inputmode="numeric" id="inA" disabled aria-label="Tower A's block count">
       <span>+</span>
-      <input type="number" inputmode="numeric" id="inB" disabled>
+      <input type="number" inputmode="numeric" id="inB" disabled aria-label="Tower B's block count">
       <span>=</span>
       <div class="given" id="givenTotal">2</div>
     </div>
@@ -193,6 +210,7 @@
 /* ===== REACTION OVERLAY (shared across all games) ===== */
 const HAPPY_IMAGES=['assets/reactions/happy-1.webp','assets/reactions/happy-2.jpg','assets/reactions/happy-3.jpg'];
 const SAD_IMAGES=['assets/reactions/sad-1.jpg','assets/reactions/sad-2.jpeg','assets/reactions/sad-3.jpeg'];
+[...HAPPY_IMAGES,...SAD_IMAGES].forEach(src=>{ const img=new Image(); img.src=src; });  // preload so the first reaction pops instantly
 function showReaction(kind){
   const list = kind==='happy' ? HAPPY_IMAGES : SAD_IMAGES;
   const src = list[Math.floor(Math.random()*list.length)];

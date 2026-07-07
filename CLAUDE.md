@@ -38,7 +38,8 @@ new game, copy the engine verbatim and change **only** the `GAME` config object
 ### Constants
 - `X = 3` — an "x" length renders as **3 cells**.
 - `GRID = 10` — workspace is a 10×10 cell grid.
-- `CELL = 44` — pixel size of one cell.
+- `CELL = 44` — the *starting* pixel size of one cell (see Adaptive fit below; it's a floor for
+  small screens, not a fixed value — the board grows well past this on spacious desktops/tablets).
 
 ### Tiles (same colours, sizes, labels everywhere)
 - **x²-tile**: teal (`--x2`), 3×3 cells, label `x²`.
@@ -86,6 +87,26 @@ The engine, after every change, checks: **all tiles placed** → occupied cells 
 Each question's tray holds exactly the tiles needed for the solution (same as the student
 counting out tiles in class). The challenge is the **arrangement**, never guessing counts.
 
+### Adaptive fit: grows AND shrinks, never assume a fixed cell size
+`fitLayout()` starts from the breakpoint's CSS `--cell`/`--bcell`, then:
+1. **Grows** the cell size (up to a per-game `CELL_MAX`/`BCELL_MAX` cap) while the page still
+   fits the viewport, so the board isn't stranded tiny in the corner of a big desktop/tablet
+   screen — a real bug we found and fixed (previously the cell size only ever shrank, so a
+   1440px-wide window rendered the same cramped 440px board as a small laptop).
+2. **Shrinks** below the breakpoint default as far as needed for a tile-heavy question (some
+   trinomials/questions need far more tiles than others) so the page never needs to scroll.
+
+**Gotcha:** always call `document.documentElement.style.removeProperty('--cell')` (or
+`--bcell`) at the *start* of `fitLayout()`, before reading `cssNum(...)`. Without this, a
+shrink applied on a tile-heavy question persists as an inline style override and compounds on
+the *next* question too, even if that question has far fewer tiles and would otherwise fit at
+full size. This bit us once already — keep the reset as the first line of `fitLayout()`.
+
+`halving-towers.html` has no JS-driven cell size (fixed-px wells/blocks), so its equivalent of
+"grow on spacious screens" is a plain `@media (min-width:1300px)` breakpoint bumping the
+fixed px values instead — same intent, different mechanism because that file isn't part of
+the shared engine.
+
 ## The `GAME` config contract (the per-game differences)
 ```
 const GAME = {
@@ -105,8 +126,46 @@ const GAME = {
   a **square** (`w==h`) with side `x + b/2`. Identity `x² + bx + (b/2)² = (x + b/2)²`
   (Unicode superscripts, never `x^2`).
 
+## Accessibility (shared across every game)
+- Every page has a `@media (prefers-reduced-motion:reduce)` rule collapsing the pop/shake/
+  reaction animations, and a `:focus-visible` ring (`#4d8fff`) on links/buttons/inputs so
+  keyboard focus is always visible.
+- Status/result regions (`#result`, `#goal`/`.hint-msg`, `#msg`) carry `aria-live="polite"`
+  so screen readers announce outcomes without the user needing to hunt for them.
+- **Known gap:** tile/block/chip dragging has no keyboard-operable equivalent — it's pure
+  Pointer Events. Full keyboard drag-and-drop for a physical tile-arrangement game is a
+  meaningfully bigger feature (needs a "pick up / move / drop" keyboard mode per game) and
+  hasn't been built yet. If a future session tackles it, design it once in the shared engine
+  and port it to `prime-composite.html`/`halving-towers.html` deliberately, not silently.
+
+## Reaction images (`assets/reactions/`)
+Kept small on purpose: the overlay shows them at `max-width:66vw;max-height:66vh` for ~2s, so
+there's no reason to ship camera-resolution originals. Convention: resize to a **900px max
+edge**, JPEG quality ~75–78 (`sips -s formatOptions 78 in.jpg --resampleHeightWidthMax 900
+--out out.jpg` on macOS). Each game also preloads every reaction image at boot
+(`[...HAPPY_IMAGES,...SAD_IMAGES].forEach(src=>{ const img=new Image(); img.src=src; })`) so
+the *first* celebration/fail overlay pops instantly instead of waiting on a cold fetch.
+
 ## Adding a new game
 1. Copy an existing file. Keep all CSS and all engine functions byte-for-byte.
 2. Replace the `<title>`/header text and the `GAME` object.
-3. Verify headlessly (Chromium at `/opt/pw-browsers/chromium`) that a correct arrangement
-   triggers the win and that the identity/labels are right for every question variant.
+3. Verify headlessly. There's no system Chromium preinstalled (`/opt/pw-browsers` doesn't
+   exist on this machine) — set one up in a scratch dir: `npm init -y && npm install
+   playwright && npx playwright install chromium`, then drive the page with Playwright and
+   call the engine's own globals directly from `page.evaluate()` (e.g. `placeTile`,
+   `doRotate`, `checkWin`) rather than simulating real pointer drags — the shared engine's
+   top-level `function` declarations are already on `window` since these are classic
+   (non-module) scripts. Confirm a correct arrangement triggers the win and the identity/
+   labels are right for every question variant before trusting a change.
+
+## Dev tooling: agent-skills plugin
+
+[addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) is cloned locally
+into `.agent-skills/` (gitignored, not part of this repo). It adds slash commands
+(`/spec`, `/plan`, `/build`, `/test`, `/review`, `/webperf`, `/code-simplify`, `/ship`)
+and skills that auto-activate during development. To use it, launch Claude Code from
+this directory with:
+
+```
+claude --plugin-dir "$(pwd)/.agent-skills"
+```

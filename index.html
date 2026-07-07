@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Bright, touch-friendly math games for practising factoring, completing the square, prime/composite numbers, and halving.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎲</text></svg>">
 <title>Math Games</title>
 <style>
   :root{
@@ -10,7 +12,7 @@
     --ink:#2b2350; --good:#2ec27e;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0;height:100%;}
   body{
     font-family:"Baloo 2","Comic Sans MS","Chalkboard SE","Marker Felt",Verdana,sans-serif;
     background:
@@ -18,13 +20,17 @@
       radial-gradient(circle at 90% 20%, #d8f5ff 0, transparent 40%),
       var(--bg);
     color:var(--ink); min-height:100vh;
+    display:flex; flex-direction:column;
   }
   header{background:#fff;border-bottom:4px dashed #ffcf70;padding:22px 24px;text-align:center;}
   header h1{font-size:32px;margin:0;font-weight:800;color:#ff6f3c;}
   header p{margin:8px 0 0;font-size:15px;font-weight:600;color:#8a7bb8;}
 
-  main{max-width:1000px;margin:0 auto;padding:20px 20px 30px;
-       display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;}
+  main{max-width:1100px;margin:0 auto;padding:32px 20px;width:100%;
+       flex:1; align-content:center;
+       display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;}
+
+  footer{text-align:center;padding:16px;font-size:12px;font-weight:600;color:#a89bd6;}
 
   a.card{background:var(--paper);border:3px solid var(--line);border-radius:18px;padding:22px;
      box-shadow:0 4px 0 var(--line);text-decoration:none;color:var(--ink);
@@ -40,6 +46,11 @@
 
   .tag{display:inline-block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
      color:#a86f00;background:#fff0c9;border-radius:8px;padding:3px 8px;align-self:flex-start;}
+
+  a.card:focus-visible{outline:3px solid #4d8fff;outline-offset:2px;}
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;}
+  }
 </style>
 </head>
 <body>
@@ -59,7 +70,7 @@
   </a>
 
   <a class="card" href="completing-the-square.html">
-    <div class="emoji">🟩</div>
+    <div class="emoji">🟦</div>
     <span class="tag">Grade 11–12</span>
     <h2>Completing the Square</h2>
     <p>Arrange algebra tiles into a perfect square to complete the expression.</p>
@@ -82,6 +93,8 @@
     <span class="play">Play →</span>
   </a>
 </main>
+
+<footer>Made for practising with tiles and blocks, one game at a time 🎲</footer>
 
 </body>
 </html>

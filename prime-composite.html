@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧱</text></svg>">
 <title>Block Party! Prime or Composite?</title>
 <style>
   :root{
@@ -141,6 +142,11 @@
     .zone h3{font-size:13px;margin:0 0 4px;}
     .pill{width:26px;height:26px;font-size:12px;}
   }
+
+  a:focus-visible,button:focus-visible{outline:3px solid #4d8fff;outline-offset:2px;border-radius:8px;}
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;}
+  }
 </style>
 </head>
 <body>
@@ -168,7 +174,7 @@
       <div class="grid-actions">
         <button id="resetBtn">↺ Reset blocks</button>
       </div>
-      <div class="msg" id="msg"></div>
+      <div class="msg" id="msg" aria-live="polite"></div>
     </div>
   </section>
 
@@ -201,6 +207,7 @@
 /* ===== REACTION OVERLAY (shared across all games) ===== */
 const HAPPY_IMAGES=['assets/reactions/happy-1.webp','assets/reactions/happy-2.jpg','assets/reactions/happy-3.jpg'];
 const SAD_IMAGES=['assets/reactions/sad-1.jpg','assets/reactions/sad-2.jpeg','assets/reactions/sad-3.jpeg'];
+[...HAPPY_IMAGES,...SAD_IMAGES].forEach(src=>{ const img=new Image(); img.src=src; });  // preload so the first reaction pops instantly
 function showReaction(kind){
   const list = kind==='happy' ? HAPPY_IMAGES : SAD_IMAGES;
   const src = list[Math.floor(Math.random()*list.length)];
@@ -273,9 +280,11 @@ function loadQuestion(){
 }
 
 /* ---- ADAPTIVE FIT: start from the breakpoint's preferred --bcell size, then
-   shrink only as far as needed for this particular N (the tray holds N unit
-   blocks) so the page never needs to scroll, while staying as large/
-   touch-friendly as possible. ---- */
+   GROW it to use up spare space on large screens (desktop/tablet), or SHRINK
+   it as far as needed for this particular N (the tray holds N unit blocks),
+   so the page never needs to scroll while staying as large/touch-friendly as
+   possible either way. ---- */
+const BCELL_MAX=52;
 function fitLayout(){
   document.documentElement.style.removeProperty('--bcell');   // back to the CSS breakpoint default
   let cell=cssNum('--bcell',30);
@@ -284,11 +293,11 @@ function fitLayout(){
   let guard=0;
   const fits=()=>document.documentElement.scrollHeight<=window.innerHeight &&
                   document.documentElement.scrollWidth<=window.innerWidth;
-  while(!fits() && cell>22 && guard++<25){
-    cell-=2;
-    document.documentElement.style.setProperty('--bcell',cell+'px');
-    CELL=cell;
-  }
+  const resize=()=>{ document.documentElement.style.setProperty('--bcell',cell+'px'); CELL=cell; };
+  while(fits() && cell<BCELL_MAX && guard++<25){ cell+=2; resize(); }
+  if(!fits() && cell>22){ cell-=2; resize(); }
+  guard=0;
+  while(!fits() && cell>22 && guard++<25){ cell-=2; resize(); }
   blocks.forEach(b=>{ if(b.placed) placeBlock(b,b.gx,b.gy); });
 }
 
