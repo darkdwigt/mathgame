@@ -6,7 +6,7 @@
 <title>Block Party! Prime or Composite?</title>
 <style>
   :root{
-    --bcell:30px;
+    --bcell:44px;
     --bg:#fff6e0; --paper:#ffffff; --line:#ffe1a8;
     --ink:#2b2350; --block:#ff9f1c; --blockline:#e07c00;
     --prime:#4d8fff; --primedark:#2f66cc;
@@ -58,7 +58,7 @@
   .center h2{margin:0;font-size:16px;color:#a86f00;align-self:flex-start;}
   .board-wrap{width:100%;max-width:calc(var(--bcell) * 20);overflow-x:auto;-webkit-overflow-scrolling:touch;}
   #grid{position:relative;
-    width:calc(var(--bcell) * 20); height:calc(var(--bcell) * 8);
+    width:calc(var(--bcell) * 20); height:calc(var(--bcell) * 6);
     background:#fffdf5;border:3px dashed #ffcf70;border-radius:12px;
     background-image:linear-gradient(to right,#ffedc4 1px,transparent 1px),
                      linear-gradient(to bottom,#ffedc4 1px,transparent 1px);
@@ -66,7 +66,7 @@
   #tray{width:100%;min-height:70px;background:#fff9ec;border:3px solid var(--line);border-radius:14px;
         padding:10px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;}
   .tray-label{font-size:13px;color:#a86f00;font-weight:700;align-self:flex-start;}
-  .block{position:relative;width:calc(var(--bcell) - 2px);height:calc(var(--bcell) - 2px);border-radius:7px;background:var(--block);
+  .block{position:relative;width:calc(var(--bcell) - 2px);height:calc(var(--bcell) - 2px);border-radius:4px;background:var(--block);
         border:2px solid var(--blockline);box-shadow:0 2px 0 var(--blockline);cursor:grab;touch-action:none;}
   .block.dragging{cursor:grabbing;box-shadow:0 6px 12px rgba(0,0,0,.3);z-index:1000;}
   .grid-actions{display:flex;gap:10px;}
@@ -106,9 +106,9 @@
   /* ===== REACTION OVERLAY (shared across all games) ===== */
   #reactionOverlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
     pointer-events:none;z-index:9999;}
-  #reactionOverlay img{max-width:38vmin;max-height:38vmin;border-radius:20px;
-    box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;}
-  #reactionOverlay img.show{animation:reactionFade .75s ease forwards;}
+  #reactionOverlay img{max-width:66vw;max-height:66vh;border-radius:24px;
+    box-shadow:0 14px 40px rgba(0,0,0,.4);opacity:0;}
+  #reactionOverlay img.show{animation:reactionFade 2s ease forwards;}
   @keyframes reactionFade{
     0%{opacity:0;transform:scale(.6);}
     18%{opacity:1;transform:scale(1.06);}
@@ -122,7 +122,7 @@
     .left,.center,.right{flex:1 1 auto;width:100%;min-width:0;}
     .right{flex-direction:row;flex-wrap:wrap;}
     .right .panel,.right .zone{flex:1 1 200px;}
-    :root{--bcell:30px;}
+    :root{--bcell:44px;}
     header{padding:6px 12px;gap:8px;}
     .home-link{width:32px;height:32px;font-size:16px;}
     header h1{font-size:16px;}
@@ -210,7 +210,7 @@ function showReaction(kind){
   img.src=src;
   overlay.appendChild(img);
   requestAnimationFrame(()=>img.classList.add('show'));
-  setTimeout(()=>{ img.remove(); },800);
+  setTimeout(()=>{ img.remove(); },2050);
 }
 
 /* ---------- setup ---------- */
@@ -219,7 +219,14 @@ function cssNum(name,fallback){
   return Number.isFinite(n) ? n : fallback;
 }
 let CELL=cssNum('--bcell',30);
-const GRID_W=20, GRID_H=8;
+/* GRID_W=20: must fit a straight 1x19 line (19 is the largest prime in the
+   2-20 range, and primes can only ever form a single row/column).
+   GRID_H=6: every composite N in 2-20 has a non-trivial factor pair with
+   the smaller side <=4 (9 and 15 are the worst case at 3), so 6 rows leaves
+   comfortable headroom for natural arrangements (e.g. 4x4, 4x5) without
+   forcing the tall, cramped 8-row canvas the block size used to be computed
+   against — freeing that space lets --bcell render meaningfully bigger. */
+const GRID_W=20, GRID_H=6;
 const gridEl=document.getElementById('grid');
 const trayEl=document.getElementById('tray');
 const chipHolder=document.getElementById('chipHolder');
@@ -277,7 +284,7 @@ function fitLayout(){
   let guard=0;
   const fits=()=>document.documentElement.scrollHeight<=window.innerHeight &&
                   document.documentElement.scrollWidth<=window.innerWidth;
-  while(!fits() && cell>16 && guard++<25){
+  while(!fits() && cell>22 && guard++<25){
     cell-=2;
     document.documentElement.style.setProperty('--bcell',cell+'px');
     CELL=cell;

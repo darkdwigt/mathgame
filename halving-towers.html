@@ -87,9 +87,9 @@
   /* ===== REACTION OVERLAY (shared across all games) ===== */
   #reactionOverlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
     pointer-events:none;z-index:9999;}
-  #reactionOverlay img{max-width:38vmin;max-height:38vmin;border-radius:20px;
-    box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;}
-  #reactionOverlay img.show{animation:reactionFade .75s ease forwards;}
+  #reactionOverlay img{max-width:66vw;max-height:66vh;border-radius:24px;
+    box-shadow:0 14px 40px rgba(0,0,0,.4);opacity:0;}
+  #reactionOverlay img.show{animation:reactionFade 2s ease forwards;}
   @keyframes reactionFade{
     0%{opacity:0;transform:scale(.6);}
     18%{opacity:1;transform:scale(1.06);}
@@ -202,7 +202,7 @@ function showReaction(kind){
   img.src=src;
   overlay.appendChild(img);
   requestAnimationFrame(()=>img.classList.add('show'));
-  setTimeout(()=>{ img.remove(); },800);
+  setTimeout(()=>{ img.remove(); },2050);
 }
 
 const SEQUENCE=[2,4,6,8,10,12];
