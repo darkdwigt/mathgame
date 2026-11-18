@@ -33,6 +33,14 @@ new game, copy the engine verbatim and change **only** the `GAME` config object
   grid) rather than the tile-grid engine — same visual theme and Pointer Events pattern as
   `prime-composite.html`, but its own simpler drag model suited to stacking identical blocks.
 
+- `step-chain.html` — **Not part of the shared engine.** A Grade 10–11 physics puzzle
+  (match-style board): a question on top, a 3×4 board of blocks below. The player drags a
+  chain (8-way adjacency) through the solution steps in order — formula → substitution →
+  answer. The other blocks are common mistakes, each with a one-line explanation shown when
+  picked; a wrong block costs one of 3 lives. Content lives in the `QUESTIONS` array
+  (`steps` + exactly `12 − steps.length` `traps`). Its own dark "sweet shop" look (Fredoka +
+  Nunito), deliberately not the pastel kid theme. SA notation: decimal comma, m·s⁻².
+
 ## The shared engine (identical in every game)
 
 ### Constants

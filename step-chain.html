@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Physics puzzle: swipe through the solution steps in order and dodge the common-mistake blocks.">
+<title>Step Chain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+  /* Layout: one phone-width column — score bar, question card, message line, 3x4 candy board, hint bar. Single deliberate dark "sweet shop" look. */
+  :root{
+    color-scheme:dark;
+    --board:#24122b; --board-2:#341b3f; --well:#1a0c20;
+    --paper:#fff7ef; --ink:#22102a; --muted:#c7b0cd;
+    --gold:#ffc94d; --bad:#ff5a6e; --good:#5ee0a0;
+    --c1:#ff93bb; --c2:#ffb36b; --c3:#ffe16e; --c4:#82e4b8; --c5:#93d2ff; --c6:#cbabff;
+    --display:"Fredoka","Baloo 2","Chalkboard SE","Trebuchet MS",sans-serif;
+    --body:"Nunito","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%; margin:0;}
+  body{
+    background:
+      radial-gradient(120% 60% at 50% -10%, #4a2350 0, transparent 60%),
+      var(--board);
+    color:var(--paper); font-family:var(--body); font-weight:700;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+  }
+  .app{
+    max-width:460px; margin:0 auto; min-height:100%;
+    display:flex; flex-direction:column; gap:12px;
+    padding-left:max(16px, env(safe-area-inset-left, 0px));
+    padding-right:max(16px, env(safe-area-inset-right, 0px));
+    padding-block:14px 18px;
+  }
+
+  /* Top bar */
+  .bar{display:flex; align-items:center; gap:12px;}
+  .home{display:flex; width:36px; height:36px; border-radius:50%; background:var(--board-2); align-items:center; justify-content:center; box-shadow:0 3px 0 #120716; flex:0 0 auto;}
+  .home svg{width:18px; height:18px;}
+  .bar h1{font-family:var(--display); font-weight:700; font-size:24px; margin:0; letter-spacing:.2px;
+          color:var(--gold); text-shadow:0 3px 0 #8a4b1a;}
+  .lives{display:flex; gap:4px; margin-left:auto;}
+  .lives svg{width:22px; height:22px; transition:transform .3s, opacity .3s;}
+  .lives svg.lost{opacity:.22; transform:scale(.8);}
+  .score{font-family:var(--display); font-weight:600; font-size:20px; min-width:64px; text-align:right;
+         font-variant-numeric:tabular-nums; color:var(--paper);}
+  .score small{display:block; font-family:var(--body); font-size:11px; font-weight:800; letter-spacing:1px;
+               text-transform:uppercase; color:var(--muted);}
+
+  .progress{display:flex; gap:6px; align-items:center;}
+  .progress span{flex:1; height:6px; border-radius:3px; background:var(--board-2);}
+  .progress span.done{background:var(--good);}
+  .progress span.now{background:var(--gold);}
+
+  /* Question */
+  .qcard{background:var(--paper); color:var(--ink); border-radius:18px; padding:14px 16px 16px;
+         box-shadow:0 5px 0 #b99ab8;}
+  .qtopic{font-size:11px; font-weight:900; letter-spacing:1.2px; text-transform:uppercase; color:#9a4f7a;}
+  .qtext{font-size:17px; line-height:1.4; margin-top:4px; font-weight:700; text-wrap:pretty;}
+  .qtext b{font-weight:900;}
+
+  .msg{min-height:44px; font-size:15px; line-height:1.35; text-align:center; padding:0 6px;
+       display:flex; align-items:center; justify-content:center; color:var(--muted);}
+  .msg.good{color:var(--good);} .msg.bad{color:#ff9aa7;} .msg.info{color:var(--muted);}
+
+  /* Board */
+  .board-wrap{position:relative;}
+  #board{
+    position:relative; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+    background:var(--well); border-radius:20px; padding:10px;
+    box-shadow:inset 0 3px 10px rgba(0,0,0,.5);
+    touch-action:none;
+  }
+  .cell{
+    position:relative; aspect-ratio:5/4; border-radius:14px;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    padding:4px 6px; color:var(--ink);
+    font-size:clamp(13px, 3.7vw, 17px); font-weight:800; line-height:1.2;
+    background:linear-gradient(180deg, color-mix(in srgb, var(--c) 70%, #fff) 0%, var(--c) 55%);
+    box-shadow:inset 0 -5px 0 rgba(0,0,0,.16), inset 0 2px 0 rgba(255,255,255,.55), 0 3px 0 rgba(0,0,0,.35);
+    transition:transform .12s ease, box-shadow .12s ease, opacity .3s ease;
+    word-break:break-word;
+  }
+  .cell sub{font-size:.7em;}
+  .cell.sel{transform:translateY(-3px) scale(1.04);
+            box-shadow:0 0 0 3px #fff, inset 0 -5px 0 rgba(0,0,0,.16), 0 8px 14px rgba(0,0,0,.45);}
+  .cell.wrong{box-shadow:0 0 0 3px var(--bad), inset 0 -5px 0 rgba(0,0,0,.16); animation:shake .4s;}
+  .cell.hint{animation:pulse 1s ease-in-out 3;}
+  .cell.pop{animation:pop .45s ease forwards;}
+  .cell.fall{animation:fall .5s ease-in forwards;}
+  .cell.drop{animation:drop .45s cubic-bezier(.3,1.4,.5,1) backwards;}
+  @keyframes shake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+  @keyframes pulse{50%{box-shadow:0 0 0 4px var(--gold), 0 0 18px var(--gold);}}
+  @keyframes pop{40%{transform:scale(1.15)}100%{transform:scale(0); opacity:0}}
+  @keyframes fall{to{transform:translateY(160%) rotate(8deg); opacity:0}}
+  @keyframes drop{from{transform:translateY(-140%); opacity:0}}
+
+  #line{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible;}
+  #line polyline{fill:none; stroke:#fff; stroke-width:7; stroke-linecap:round; stroke-linejoin:round; opacity:.85;}
+
+  .float{position:absolute; left:50%; top:40%; transform:translate(-50%,0); pointer-events:none;
+         font-family:var(--display); font-size:38px; font-weight:700; color:var(--gold);
+         text-shadow:0 3px 0 #8a4b1a; animation:rise 1s ease-out forwards;}
+  @keyframes rise{to{transform:translate(-50%,-70px); opacity:0}}
+
+  /* Sheets (solution / end) over the board */
+  .sheet{position:absolute; inset:0; border-radius:20px; background:var(--paper); color:var(--ink);
+         padding:18px; display:flex; flex-direction:column; gap:10px; overflow:auto;
+         animation:drop .4s cubic-bezier(.3,1.3,.5,1);}
+  .sheet h2{font-family:var(--display); font-weight:700; font-size:24px; margin:0; color:#7a2f63;}
+  .sheet p{margin:0; font-size:15px; line-height:1.4;}
+  .sheet ol{margin:0; padding-left:22px; display:flex; flex-direction:column; gap:6px; font-size:17px; font-weight:800;}
+  .sheet ol li::marker{color:#9a4f7a;}
+  .sheet .spacer{flex:1;}
+
+  .controls{display:flex; gap:10px; justify-content:center;}
+  button{font:inherit; font-weight:900; font-size:16px; border:0; border-radius:14px; padding:12px 20px; cursor:pointer;
+         background:var(--board-2); color:var(--paper); box-shadow:0 4px 0 #120716; transition:transform .1s, box-shadow .1s;}
+  button:active{transform:translateY(3px); box-shadow:0 1px 0 #120716;}
+  button:focus-visible{outline:3px solid var(--gold); outline-offset:2px;}
+  button.go{background:var(--good); color:#0f3a26; box-shadow:0 4px 0 #2a9c66;}
+  button.go:active{box-shadow:0 1px 0 #2a9c66;}
+  button:disabled{opacity:.4; cursor:default;}
+  .hintcost{font-size:12px; color:var(--muted); font-weight:700;}
+
+  .howto{font-size:13px; color:var(--muted); text-align:center; line-height:1.4; margin:0;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.01ms !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="bar">
+    <a class="home" href="index.html" aria-label="All games"><svg viewBox="0 0 24 24"><path fill="#fff7ef" d="M12 3 2 12h3v8h5v-5h4v5h5v-8h3z"/></svg></a>
+    <h1>Step Chain</h1>
+    <div class="lives" id="lives" aria-label="Lives"></div>
+    <div class="score"><small>Score</small><span id="score">0</span></div>
+  </div>
+  <div class="progress" id="progress"></div>
+
+  <div class="qcard">
+    <div class="qtopic" id="qtopic"></div>
+    <div class="qtext" id="qtext"></div>
+  </div>
+
+  <div class="msg info" id="msg" aria-live="polite">Drag through the steps in order, from the formula to the answer.</div>
+
+  <div class="board-wrap" id="wrap">
+    <div id="board"></div>
+    <svg id="line"><polyline id="poly" points=""></polyline></svg>
+  </div>
+
+  <div class="controls">
+    <button id="hintBtn" type="button">Hint <span class="hintcost">(−25)</span></button>
+  </div>
+  <p class="howto">Blocks connect sideways, up, down and diagonally. Drag back to undo a block.</p>
+</div>
+
+<script>
+// ---------- Questions (SA notation: decimal comma, m·s⁻²) ----------
+const QUESTIONS = [
+  { topic:"Newton's second law",
+    text:"A <b>5 kg</b> box accelerates at <b>2 m·s⁻²</b>. Find the net force on the box.",
+    steps:["F<sub>net</sub> = ma","F<sub>net</sub> = (5)(2)","F<sub>net</sub> = 10 N"],
+    traps:[
+      ["F<sub>net</sub> = m/a","Wrong formula. Newton's second law is F<sub>net</sub> = ma."],
+      ["F<sub>net</sub> = (5)/(2)","Multiply mass by acceleration, don't divide."],
+      ["2,5 N","That's 5 ÷ 2. F<sub>net</sub> = ma means multiply."],
+      ["7 N","That's 5 + 2. Multiply, don't add."],
+      ["F<sub>net</sub> = mg","mg is the weight. You're given the acceleration, so use F<sub>net</sub> = ma."],
+      ["F<sub>net</sub> = (5)(9,8)","9,8 is g. The acceleration here is 2 m·s⁻²."],
+      ["49 N","That's the box's weight (5 × 9,8), not the net force."],
+      ["10 kg","Force is measured in newtons (N), not kg."],
+      ["10 m·s⁻²","m·s⁻² is the unit of acceleration. Force is in newtons (N)."]
+    ]},
+  { topic:"Weight",
+    text:"Find the weight of a <b>60 kg</b> learner on Earth. (g = 9,8 m·s⁻²)",
+    steps:["w = mg","w = (60)(9,8)","w = 588 N"],
+    traps:[
+      ["w = m/g","Weight is mass times g: w = mg."],
+      ["w = (60)/(9,8)","Multiply by g, don't divide."],
+      ["6,12 N","That's 60 ÷ 9,8. Weight = mass × g."],
+      ["w = (60) + (9,8)","Multiply, don't add."],
+      ["69,8 N","That's 60 + 9,8. Multiply, don't add."],
+      ["60 N","60 kg is the mass. Weight is a force, so multiply by g."],
+      ["600 N","That uses g = 10. Use g = 9,8 m·s⁻²."],
+      ["588 kg","Weight is a force, so its unit is newtons (N)."],
+      ["5,88 N","Decimal slip: 60 × 9,8 = 588."]
+    ]},
+  { topic:"Equations of motion",
+    text:"A car starts <b>from rest</b> and accelerates at <b>3 m·s⁻²</b> for <b>4 s</b>. What is its final velocity?",
+    steps:["v<sub>f</sub> = v<sub>i</sub> + aΔt","v<sub>f</sub> = 0 + (3)(4)","v<sub>f</sub> = 12 m·s⁻¹"],
+    traps:[
+      ["Δx = v<sub>i</sub>Δt + ½aΔt²","That equation finds displacement. The question asks for velocity."],
+      ["v<sub>f</sub>² = v<sub>i</sub>² + 2aΔx","You aren't given Δx. Use the equation with time in it."],
+      ["24 m","That's how far the car travels, not how fast it ends up."],
+      ["v<sub>f</sub> = 0 + 3 + 4","aΔt means a × Δt, not a + Δt."],
+      ["7 m·s⁻¹","That's 3 + 4. Multiply a by Δt."],
+      ["v<sub>f</sub> = (3)/(4)","Multiply a by Δt, don't divide."],
+      ["0,75 m·s⁻¹","That's 3 ÷ 4. Multiply a by Δt."],
+      ["12 m·s⁻²","m·s⁻² is for acceleration. Velocity is in m·s⁻¹."],
+      ["48 m·s⁻¹","That's 3 × 4². Time isn't squared in this equation."]
+    ]},
+  { topic:"Free fall",
+    text:"A ball is <b>dropped from rest</b> and falls freely for <b>2 s</b>. How far does it fall? Take downward as positive. (g = 9,8 m·s⁻²)",
+    steps:["Δx = v<sub>i</sub>Δt + ½aΔt²","Δx = (0)(2) + ½(9,8)(2)²","Δx = 19,6 m"],
+    traps:[
+      ["v<sub>f</sub> = v<sub>i</sub> + aΔt","That gives the speed after 2 s. The question asks how far it falls."],
+      ["v<sub>f</sub>² = v<sub>i</sub>² + 2aΔx","You don't know v<sub>f</sub>, so this one doesn't help. Use the equation with Δt."],
+      ["Δx = ½(9,8)(2)","The time must be squared: Δt²."],
+      ["9,8 m","That's ½ × 9,8 × 2. You forgot to square the time."],
+      ["Δx = (9,8)(2)²","You left out the ½."],
+      ["39,2 m","That's 9,8 × 2². You left out the ½."],
+      ["Δx = ½(2)(9,8)²","Square the time, not g."],
+      ["4,9 m","That's how far it falls in 1 s, not 2 s."],
+      ["19,6 m·s⁻¹","That's its speed after 2 s (v<sub>f</sub>), not how far it fell."]
+    ]},
+  { topic:"Newton's second law with friction",
+    text:"A <b>10 kg</b> crate is pulled with a force of <b>50 N</b>. A friction force of <b>20 N</b> acts on it. Find its acceleration.",
+    steps:["F<sub>net</sub> = ma","50 − 20 = 10a","30 = 10a","a = 3 m·s⁻²"],
+    traps:[
+      ["50 + 20 = 10a","Friction works against the pull, so subtract it."],
+      ["70 = 10a","Friction works against the pull, so subtract it: 50 − 20."],
+      ["a = 7 m·s⁻²","That's 70 ÷ 10. Friction was added instead of subtracted."],
+      ["50 = 10a","You left out friction. F<sub>net</sub> is the pull minus friction."],
+      ["a = 5 m·s⁻²","That's 50 ÷ 10, which ignores friction."],
+      ["a = 300 m·s⁻²","Divide by the mass: 30 ÷ 10, not 30 × 10."],
+      ["a = 3 N","Acceleration is in m·s⁻², not newtons."],
+      ["a = 2 m·s⁻²","That's 20 ÷ 10, which only uses the friction force."]
+    ]},
+  { topic:"Kinetic energy",
+    text:"A <b>2 kg</b> ball moves at <b>3 m·s⁻¹</b>. Find its kinetic energy.",
+    steps:["E<sub>k</sub> = ½mv²","E<sub>k</sub> = ½(2)(3)²","E<sub>k</sub> = 9 J"],
+    traps:[
+      ["E<sub>k</sub> = mv²","You left out the ½."],
+      ["18 J","That's mv². You left out the ½."],
+      ["E<sub>k</sub> = ½(2)(3)","The speed must be squared: v²."],
+      ["3 J","That's ½ × 2 × 3. You forgot to square the speed."],
+      ["E<sub>k</sub> = ½(2)²(3)","Square the speed, not the mass."],
+      ["6 J","That squares the mass instead of the speed."],
+      ["E<sub>k</sub> = mgh","That's gravitational potential energy. The ball is moving, so use E<sub>k</sub>."],
+      ["9 W","Watts measure power. Energy is in joules (J)."],
+      ["9 N","Newtons measure force. Energy is in joules (J)."]
+    ]}
+];
+
+// ---------- State ----------
+const COLS = 3, ROWS = 4, LIVES = 3;
+const CANDY = ["--c1","--c2","--c3","--c4","--c5","--c6"];
+let order, qi, cells, chain, dragging, lives, score, solved, mistakes, hints, busy, pointer;
+
+const $ = id => document.getElementById(id);
+const board = $("board"), poly = $("poly"), wrap = $("wrap");
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+const rc = i => [Math.floor(i/COLS), i%COLS];
+function adjacent(a,b){ const [r1,c1]=rc(a),[r2,c2]=rc(b); return a!==b && Math.abs(r1-r2)<=1 && Math.abs(c1-c2)<=1; }
+
+// Random path of `len` touching cells (8-way), via backtracking.
+function randomPath(len){
+  const all=[...Array(COLS*ROWS).keys()];
+  function go(path){
+    if(path.length===len) return path;
+    const nexts = path.length ? shuffle(all.filter(n=>adjacent(path[path.length-1],n) && !path.includes(n))) : shuffle(all.slice());
+    for(const n of nexts){ const r=go([...path,n]); if(r) return r; }
+    return null;
+  }
+  return go([]);
+}
+
+function newGame(){
+  order = shuffle([...QUESTIONS.keys()]);
+  qi = 0; lives = LIVES; score = 0; solved = 0;
+  renderLives(); renderScore();
+  loadQuestion();
+}
+
+function loadQuestion(){
+  const q = QUESTIONS[order[qi]];
+  mistakes = 0; hints = 0; chain = []; busy = false;
+  $("qtopic").textContent = q.topic;
+  $("qtext").innerHTML = q.text;
+  setMsg("Drag through the steps in order, from the formula to the answer.","info");
+  renderProgress();
+  const path = randomPath(q.steps.length);
+  const traps = shuffle(q.traps.slice());
+  cells = Array(COLS*ROWS).fill(null);
+  path.forEach((cell,k)=> cells[cell] = {html:q.steps[k], step:k});
+  for(let i=0;i<cells.length;i++) if(!cells[i]){
+    const t = traps.pop() || ["?", "Not part of this solution."];
+    cells[i] = {html:t[0], why:t[1]};
+  }
+  board.innerHTML = "";
+  cells.forEach((c,i)=>{
+    const d=document.createElement("div");
+    d.className="cell drop"; d.dataset.i=i; d.innerHTML=c.html;
+    d.style.setProperty("--c", `var(${CANDY[Math.floor(Math.random()*CANDY.length)]})`);
+    d.style.animationDelay = (rc(i)[0]*60 + rc(i)[1]*30) + "ms";
+    board.appendChild(d);
+  });
+  wrap.querySelectorAll(".sheet").forEach(s=>s.remove());
+  $("hintBtn").disabled = false;
+  drawLine();
+}
+
+// ---------- Rendering ----------
+const HEART = '<svg viewBox="0 0 24 24"><path fill="#ff5a6e" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.5 3 4.5 6.8 4.5c2.1 0 3.6 1.1 4.2 2.4h2c.6-1.3 2.1-2.4 4.2-2.4 3.8 0 5.9 4 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+function renderLives(){ $("lives").innerHTML = Array.from({length:LIVES},(_,k)=>HEART.replace("<svg", k<lives?"<svg":'<svg class="lost"')).join(""); }
+function renderScore(){ $("score").textContent = score; }
+function renderProgress(){
+  $("progress").innerHTML = order.map((_,k)=>`<span class="${k<qi?'done':k===qi?'now':''}"></span>`).join("");
+}
+function setMsg(html,kind){ const m=$("msg"); m.innerHTML=html; m.className="msg "+kind; }
+function cellEl(i){ return board.children[i]; }
+function paintChain(){ [...board.children].forEach((el,i)=> el.classList.toggle("sel", chain.includes(i))); }
+
+function centre(i){
+  const b=wrap.getBoundingClientRect(), r=cellEl(i).getBoundingClientRect();
+  return [r.left-b.left+r.width/2, r.top-b.top+r.height/2];
+}
+function drawLine(){
+  if(!chain || !chain.length){ poly.setAttribute("points",""); return; }
+  const pts = chain.map(centre);
+  if(dragging && pointer){ const b=wrap.getBoundingClientRect(); pts.push([pointer[0]-b.left, pointer[1]-b.top]); }
+  poly.setAttribute("points", pts.map(p=>p.join(",")).join(" "));
+}
+
+// Which cell is under the pointer? `inner` shrinks the hit area so diagonal moves don't grab corners.
+function hit(x,y,inner){
+  for(let i=0;i<board.children.length;i++){
+    const r=board.children[i].getBoundingClientRect();
+    const px = inner ? r.width*0.2 : 0, py = inner ? r.height*0.2 : 0;
+    if(x>=r.left+px && x<=r.right-px && y>=r.top+py && y<=r.bottom-py) return i;
+  }
+  return -1;
+}
+
+// ---------- Input ----------
+board.addEventListener("pointerdown", e=>{
+  if(busy) return;
+  const i = hit(e.clientX,e.clientY,false);
+  if(i<0) return;
+  e.preventDefault();
+  board.setPointerCapture(e.pointerId);
+  dragging = true; pointer=[e.clientX,e.clientY]; chain=[i];
+  [...board.children].forEach(el=>el.classList.remove("wrong","hint"));
+  paintChain(); drawLine();
+});
+board.addEventListener("pointermove", e=>{
+  if(!dragging) return;
+  pointer=[e.clientX,e.clientY];
+  const i = hit(e.clientX,e.clientY,true);
+  if(i>=0){
+    const last = chain[chain.length-1];
+    if(chain.length>1 && i===chain[chain.length-2]) chain.pop();
+    else if(!chain.includes(i) && adjacent(last,i)) chain.push(i);
+    paintChain();
+  }
+  drawLine();
+});
+function endDrag(){ if(!dragging) return; dragging=false; pointer=null; judge(); }
+board.addEventListener("pointerup", endDrag);
+board.addEventListener("pointercancel", endDrag);
+window.addEventListener("resize", drawLine);
+
+// ---------- Rules ----------
+function clearChain(){ chain=[]; paintChain(); drawLine(); }
+
+function judge(){
+  const q = QUESTIONS[order[qi]];
+  if(chain.length===1){
+    setMsg("Swipe, don't tap: start on the first step and drag through to the answer.","info");
+    return clearChain();
+  }
+  const bad = chain.findIndex((ci,k)=> cells[ci].step!==k);
+  if(bad===-1){
+    if(chain.length===q.steps.length) return win();
+    setMsg("Right so far. Keep going until you reach the answer.","good");
+    return clearChain();
+  }
+  // Wrong
+  const c = cells[chain[bad]];
+  let why;
+  if(c.why) why = c.why;
+  else if(bad===0) why = "Start with the formula, then substitute, then the answer.";
+  else why = "That's a real step, but in the wrong place. Order matters.";
+  lives--; mistakes++; renderLives();
+  const el = cellEl(chain[bad]); el.classList.add("wrong");
+  setMsg(why,"bad");
+  clearChain();
+  if(lives<=0) setTimeout(gameOver, 700);
+}
+
+function win(){
+  busy = true;
+  const q = QUESTIONS[order[qi]];
+  const pts = 100 + (mistakes===0 && hints===0 ? 50 : 0);
+  score += pts; solved++; renderScore();
+  $("hintBtn").disabled = true;
+  setMsg(mistakes===0 && hints===0 ? "Clean solve! +50 bonus." : "Solved.","good");
+  const f=document.createElement("div"); f.className="float"; f.textContent="+"+pts; wrap.appendChild(f);
+  setTimeout(()=>f.remove(),1000);
+  chain.forEach((ci,k)=> setTimeout(()=>cellEl(ci).classList.add("pop"), k*90));
+  const popped = new Set(chain);
+  setTimeout(()=>{
+    poly.setAttribute("points","");
+    [...board.children].forEach((el,i)=>{ if(!popped.has(i)){ el.style.animationDelay=(Math.random()*150)+"ms"; el.classList.remove("drop"); el.classList.add("fall"); }});
+  }, chain.length*90+300);
+  setTimeout(()=> showSheet(
+    `<h2>Worked solution</h2><ol>${q.steps.map(s=>`<li>${s}</li>`).join("")}</ol><div class="spacer"></div>`,
+    qi<order.length-1 ? "Next question" : "See results",
+    ()=>{ qi++; qi<order.length ? loadQuestion() : finish(); }
+  ), chain.length*90+850);
+}
+
+function showSheet(html, label, onGo){
+  const s=document.createElement("div"); s.className="sheet"; s.innerHTML=html;
+  const b=document.createElement("button"); b.className="go"; b.type="button"; b.textContent=label;
+  b.addEventListener("click", onGo); s.appendChild(b); wrap.appendChild(s); b.focus({preventScroll:true});
+}
+
+function gameOver(){
+  busy = true; $("hintBtn").disabled = true;
+  const q = QUESTIONS[order[qi]];
+  showSheet(`<h2>Out of lives</h2><p>You solved <b>${solved}</b> of ${order.length} and scored <b>${score}</b>.</p>
+    <p>Here's how this one goes:</p><ol>${q.steps.map(s=>`<li>${s}</li>`).join("")}</ol><div class="spacer"></div>`,
+    "Play again", newGame);
+}
+function finish(){
+  busy = true; renderProgressDone(); $("hintBtn").disabled = true;
+  showSheet(`<h2>All done</h2><p>You solved all <b>${order.length}</b> questions with <b>${lives}</b> ${lives===1?"life":"lives"} left.</p>
+    <p style="font-size:22px;font-family:var(--display);font-weight:700;color:#7a2f63">Score: ${score}</p><div class="spacer"></div>`,
+    "Play again", newGame);
+}
+function renderProgressDone(){ $("progress").innerHTML = order.map(()=>'<span class="done"></span>').join(""); }
+
+$("hintBtn").addEventListener("click", ()=>{
+  if(busy) return;
+  const q = QUESTIONS[order[qi]];
+  const k = Math.min(hints, q.steps.length-1);
+  const i = cells.findIndex(c=>c.step===k);
+  [...board.children].forEach(el=>el.classList.remove("hint"));
+  void cellEl(i).offsetWidth; cellEl(i).classList.add("hint");
+  if(hints < q.steps.length-1) hints++;
+  score = Math.max(0, score-25); renderScore();
+  setMsg(k===0 ? "This block is where the chain starts." : `Step ${k+1} of the chain is glowing.`,"info");
+});
+
+newGame();
+</script>
+</body>
+</html>
